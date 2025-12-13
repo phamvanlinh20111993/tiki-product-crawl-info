@@ -1,0 +1,23 @@
+crawl:
+
+  page:
+    name: "Tiki"
+    base-url: https://tiki.vn/
+    product-api-url: https://tiki.vn/api/personalish/v1/blocks/listings
+
+  opensearch:
+    port: 9200
+    url: http://localhost
+    username:
+    password:
+
+  postgres:
+    database-url:
+    username:
+    password:
+    host: "http://localhost"
+    port: 5432
+    databaseName: "dbname"
+
+  logger:
+    level: DEBUG

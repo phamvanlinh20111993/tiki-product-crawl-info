@@ -3,7 +3,7 @@
  - understanding about GOROOT and GOPATH
     https://medium.com/@ugurkinik/golang-basics-goroot-gopath-3f80063a08d8
 
- - go opensearch client
+ - go Opensearch client
     https://docs.opensearch.org/latest/clients/go/
 
  - Tiki page: https://tiki.vn/
@@ -14,4 +14,9 @@
 
 - easy to get api: https://github.com/go-resty/resty
   - docs: https://resty.dev/
+  - https://dev.to/jones_charles_ad50858dbc0/making-http-requests-like-a-pro-in-go-using-go-resty-with-goframe-d8o
+
+- logger config: https://betterstack.com/community/guides/logging/logging-in-go/
+
+- public and private in golang: https://stackoverflow.com/questions/24622388/how-to-test-a-unexported-private-function-in-go-golang
 

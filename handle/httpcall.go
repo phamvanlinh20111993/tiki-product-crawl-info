@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	instance *Config
-	once     sync.Once
+	restyClient *resty.Client
+	once        sync.Once
 )
 
 func httpClient() *http.Client {
@@ -27,25 +27,33 @@ func httpClient() *http.Client {
 	return client
 }
 
-var restyClient *resty.Client
-
 func getRestyClientInstance() *resty.Client {
 	once.Do(func() {
 		restyClient := resty.NewWithClient(httpClient())
 		restyClient.SetDebug(true)
 		restyClient.SetCloseConnection(false)
+		restyClient.SetTimeout(30 * time.Second)
+		restyClient.SetRetryWaitTime(5 * time.Second)
+		restyClient.SetRetryMaxWaitTime(20 * time.Second)
+		restyClient.AddRetryCondition(
+			func(r *resty.Response, err error) bool {
+				return r.StatusCode() >= 500 // Retry on server errors
+			},
+		)
 	})
 	return restyClient
 }
 
 func getApi() {
 	client := getRestyClientInstance()
-	defer client.
-
-	res, err := client.R().
+	resp, err := client.R().
 		EnableTrace().
 		Get("https://httpbin.org/get")
-	fmt.Println(err, res)
-	fmt.Println(res.Request.TraceInfo())
 
+	if err != nil {
+		fmt.Println("request failed: %w", err)
+	}
+	if resp.StatusCode() >= 400 {
+		fmt.Println("bad status: %s", resp.Status())
+	}
 }
