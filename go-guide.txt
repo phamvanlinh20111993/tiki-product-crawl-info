@@ -1,1 +1,17 @@
- - https://go.dev/doc/code#ImportingLocal
+ - go project structure: https://go.dev/doc/code#ImportingLocal
+
+ - understanding about GOROOT and GOPATH
+    https://medium.com/@ugurkinik/golang-basics-goroot-gopath-3f80063a08d8
+
+ - go opensearch client
+    https://docs.opensearch.org/latest/clients/go/
+
+ - Tiki page: https://tiki.vn/
+    - get Product api: https://tiki.vn/api/personalish/v1/blocks/listings?page=1&limit=200&category=15078
+
+- update third party modules in go: https://stackoverflow.com/questions/10383498/how-does-go-update-third-party-packages
+    go get -u all
+
+- easy to get api: https://github.com/go-resty/resty
+  - docs: https://resty.dev/
+
