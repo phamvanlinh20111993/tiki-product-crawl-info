@@ -1,9 +1,10 @@
 package datasource
 
 type datasourceI interface {
-	connect()
+	// connect()
 	insert()
 	insertBatch()
 	update()
 	delete()
+	close()
 }

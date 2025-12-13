@@ -12,12 +12,16 @@ crawl:
     password:
 
   postgres:
-    database-url:
+    database-url: "postgres://username:password@localhost:5432/database_name?sslmode=disable"
     username:
     password:
     host: "http://localhost"
     port: 5432
     databaseName: "dbname"
+
+  file:
+    path:
+    name:
 
   logger:
     level: DEBUG

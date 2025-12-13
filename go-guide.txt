@@ -20,3 +20,5 @@
 
 - public and private in golang: https://stackoverflow.com/questions/24622388/how-to-test-a-unexported-private-function-in-go-golang
 
+- postgress golang: https://pkg.go.dev/github.com/jackc/pgx/v5#hdr-Establishing_a_Connection
+    - connection pool: https://pkg.go.dev/github.com/jackc/pgx/v4/pgxpool

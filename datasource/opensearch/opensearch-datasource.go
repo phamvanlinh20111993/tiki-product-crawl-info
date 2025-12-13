@@ -15,8 +15,7 @@ type OpenSearchDataSource struct {
 }
 
 var (
-	opensearchClient OpenSearchDataSource
-	once             sync.Once
+	once sync.Once
 )
 
 func getOpensearchClient() OpenSearchDataSource {
@@ -55,6 +54,12 @@ func getOpensearchClient() OpenSearchDataSource {
 	return opensearchClient
 }
 
+func getOpenSearchDataSourceInstance() OpenSearchDataSource {
+	return getOpensearchClient()
+}
+
+var GetOpenSearchDataSourceInstance = getOpenSearchDataSourceInstance
+
 func (o OpenSearchDataSource) insert() {
 
 }
@@ -69,4 +74,8 @@ func (o OpenSearchDataSource) update() {
 
 func (o OpenSearchDataSource) delete() {
 
+}
+
+func (o OpenSearchDataSource) close() {
+	o.close()
 }
