@@ -2,10 +2,10 @@ package handle
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/go-resty/resty/v2"
 	"log/slog"
 	"net/http"
+	"selfstudy/crawl/product/configuration"
 	"selfstudy/crawl/product/metadata"
 	"selfstudy/crawl/product/util"
 	"strconv"
@@ -34,29 +34,31 @@ func httpClient() *http.Client {
 
 func getRestyClientInstance() *resty.Client {
 	once.Do(func() {
-		restyClient := resty.NewWithClient(httpClient())
-		restyClient.SetDebug(true)
-		restyClient.SetCloseConnection(false)
-		restyClient.SetTimeout(30 * time.Second)
-		restyClient.SetRetryWaitTime(5 * time.Second)
-		restyClient.SetRetryMaxWaitTime(20 * time.Second)
-		restyClient.AddRetryCondition(
+		client := resty.NewWithClient(httpClient())
+		client.SetDebug(true)
+		client.SetCloseConnection(false)
+		client.SetTimeout(30 * time.Second)
+		client.SetRetryWaitTime(5 * time.Second)
+		client.SetRetryMaxWaitTime(20 * time.Second)
+		client.AddRetryCondition(
 			func(r *resty.Response, err error) bool {
 				return r.StatusCode() >= 500 // Retry on server errors
 			},
 		)
+
+		restyClient = client
 	})
 	return restyClient
 }
 
 func getTikiProducts(pageNum int, limit int, category string) ([]metadata.Product, error) {
-	// client := getRestyClientInstance()
-	resp, err := resty.New().R().
+	client := getRestyClientInstance()
+	resp, err := client.R().
 		EnableTrace().
 		SetQueryParam("page", strconv.Itoa(pageNum)).
 		SetQueryParam("limit", strconv.Itoa(limit)).
 		SetQueryParam("category", category).
-		Get("https://tiki.vn/api/personalish/v1/blocks/listings")
+		Get(configuration.GetPageConfig().TikiProductAPIURL)
 
 	if err != nil {
 		util.LogError("request failed", slog.Any("error", err))
@@ -68,8 +70,8 @@ func getTikiProducts(pageNum int, limit int, category string) ([]metadata.Produc
 		return []metadata.Product{}, err
 	}
 
-	bodyString := string(resp.Body())
-	fmt.Println(bodyString)
+	//	bodyString := string(resp.Body())
+	//	fmt.Println(bodyString)
 	var tikiProductResponse metadata.Response
 	err = json.Unmarshal(resp.Body(), &tikiProductResponse)
 	if err != nil {
