@@ -1,7 +1,7 @@
  - go project structure: https://go.dev/doc/code#ImportingLocal
 
  - understanding about GOROOT and GOPATH
-    https://medium.com/@ugurkinik/golang-basics-goroot-gopath-3f80063a08d8
+    https://medium.com/@ugurkinik/Golang-basics-goroot-gopath-3f80063a08d8
 
  - go Opensearch client
     https://docs.opensearch.org/latest/clients/go/
@@ -18,10 +18,14 @@
 
 - logger config: https://betterstack.com/community/guides/logging/logging-in-go/
 
-- public and private in golang: https://stackoverflow.com/questions/24622388/how-to-test-a-unexported-private-function-in-go-golang
+- public and private in Golang: https://stackoverflow.com/questions/24622388/how-to-test-a-unexported-private-function-in-go-Golang
 
-- postgress golang: https://pkg.go.dev/github.com/jackc/pgx/v5#hdr-Establishing_a_Connection
+- postgres Golang: https://pkg.go.dev/github.com/jackc/pgx/v5#hdr-Establishing_a_Connection
     - connection pool: https://pkg.go.dev/github.com/jackc/pgx/v4/pgxpool
 
-- string buffer and builder in golang: https://stackoverflow.com/questions/1760757/how-to-efficiently-concatenate-strings-in-go
+- string buffer and builder in Golang: https://stackoverflow.com/questions/1760757/how-to-efficiently-concatenate-strings-in-go
       https://stackoverflow.com/questions/1760757/how-to-efficiently-concatenate-strings-in-go/47798475#47798475
+
+- reflect in Golang: https://dev.to/doziestar/deep-dive-into-go-reflect-package-baa
+
+- reading yml file in Golang: https://medium.com/better-programming/parsing-and-creating-yaml-in-go-crash-course-2ec10b7db850

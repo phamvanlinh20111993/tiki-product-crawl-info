@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"selfstudy/crawl/product/configuration"
 	"strings"
 	"sync"
 )
@@ -24,11 +25,21 @@ var LevelNames = map[slog.Leveler]string{
 	LevelFatal: "FATAL",
 }
 
+var Levels = map[string]slog.Level{
+	"TRACE": LevelTrace,
+	"FATAL": LevelFatal,
+	"DEBUG": slog.LevelDebug,
+	"INFO":  slog.LevelInfo,
+	"ERROR": slog.LevelError,
+	"WARN":  slog.LevelWarn,
+}
+
 func getLoggerInstance() *slog.Logger {
 	once.Do(func() {
+		var loggerConfig = configuration.GetLoggerConfig()
 		opts := &slog.HandlerOptions{
-			Level:     slog.LevelDebug, // check in config
-			AddSource: true,
+			Level:     Levels[strings.ToUpper(loggerConfig.Level)],
+			AddSource: loggerConfig.IsAddSource,
 			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
 				if a.Key == slog.LevelKey {
 					level := a.Value.Any().(slog.Level)
@@ -39,7 +50,6 @@ func getLoggerInstance() *slog.Logger {
 
 					a.Value = slog.StringValue(levelLabel)
 				}
-
 				return a
 			},
 		}

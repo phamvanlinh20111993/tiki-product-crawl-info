@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"os"
+	"selfstudy/crawl/product/configuration"
 	"sync"
 )
 
@@ -19,7 +20,7 @@ func NewFileDataSource(connection string) *FileDataSource {
 	var fileOpen *os.File
 	once.Do(func() {
 		// open output file
-		fo, err := os.Create("output.txt") // get from config
+		fo, err := os.Create(configuration.GetFileConfig().Path) // get from config
 		if err != nil {
 			panic(err)
 		}

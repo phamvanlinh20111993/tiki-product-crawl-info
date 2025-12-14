@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"selfstudy/crawl/product/configuration"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -21,6 +23,7 @@ var (
 
 func getOpensearchClient() OpenSearchDataSource {
 	once.Do(func() {
+		var openSearchConfig = configuration.GetOpenSearchConfig()
 		client, err := opensearch.NewClient(opensearch.Config{
 			Transport: &http.Transport{
 				TLSClientConfig:       &tls.Config{InsecureSkipVerify: true},
@@ -36,15 +39,14 @@ func getOpensearchClient() OpenSearchDataSource {
 			EnableRetryOnTimeout: true,
 			EnableDebugLogger:    true, // get from config
 			MaxRetries:           5,
-			RetryOnStatus:        []int{502, 503, 504},
-			Addresses:            []string{"https://localhost:9200"},
-			//Username:  "admin", // For testing only. Don't store credentials in code.
-			//Password:  "admin",
+			RetryOnStatus:        []int{http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout}, // 502,503,504
+			Addresses:            []string{openSearchConfig.URL + ":" + strconv.Itoa(openSearchConfig.Port)},
+			//Username:  openSearchConfig.Username, // For testing only. Don't store credentials in code.
+			//Password:  openSearchConfig.Password,
 		})
 
 		if err != nil {
-			slog.Error("operation failed",
-				slog.Any("error", err))
+			slog.Error("operation failed", slog.Any("error", err))
 			panic(err)
 		}
 

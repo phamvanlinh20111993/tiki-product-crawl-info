@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"os"
+	"selfstudy/crawl/product/configuration"
 	"selfstudy/crawl/product/util"
 	"sync"
 	"time"
@@ -21,9 +21,8 @@ var (
 
 // config: https://github.com/jackc/pgx/discussions/1989
 func NewPostgresDataSource() PostgresDataSource {
-
 	once.Do(func() {
-		config, err := pgxpool.ParseConfig(os.Getenv("DATABASE_URL"))
+		config, err := pgxpool.ParseConfig(configuration.GetPostgresConfig().DatabaseURL)
 		if err != nil {
 			util.LogError(err.Error())
 		}
