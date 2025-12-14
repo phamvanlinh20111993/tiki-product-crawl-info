@@ -2,14 +2,21 @@ package util
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"sync"
 )
 
 var (
 	logger *slog.Logger
 	once   sync.Once
+)
+
+const (
+	LevelTrace = slog.Level(-8)
+	LevelFatal = slog.Level(12)
 )
 
 var LevelNames = map[slog.Leveler]string{
@@ -20,7 +27,7 @@ var LevelNames = map[slog.Leveler]string{
 func getLoggerInstance() *slog.Logger {
 	once.Do(func() {
 		opts := &slog.HandlerOptions{
-			Level:     slog.LevelDebug, // check config
+			Level:     slog.LevelDebug, // check in config
 			AddSource: true,
 			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
 				if a.Key == slog.LevelKey {
@@ -42,27 +49,51 @@ func getLoggerInstance() *slog.Logger {
 	return logger
 }
 
-func logInfo(msg string) {
+func logCommon(logLevel slog.Level, msg string, val ...any) {
+	var msgFormat strings.Builder
+	var attrs []slog.Attr
+	for _, v := range val {
+		attrValue, isSlogAttr := v.(slog.Attr)
+		if !isSlogAttr {
+			attrs = append(attrs, attrValue)
+			continue
+		}
+
+		errorValue, isError := v.(error)
+		if isError {
+			msgFormat.WriteString(" ")
+			msgFormat.WriteString(errorValue.Error())
+			continue
+		}
+
+		msgFormat.WriteString(" ")
+		msgFormat.WriteString(fmt.Sprintf("%v", v))
+	}
+
 	getLoggerInstance().LogAttrs(
 		context.Background(),
-		slog.LevelInfo,
-		msg)
+		logLevel,
+		msg+msgFormat.String(),
+		attrs...)
 }
 
-func logError(msg string) {
-	getLoggerInstance().LogAttrs(
-		context.Background(),
-		slog.LevelError,
-		msg)
+func logInfo(msg string, args ...any) {
+	logCommon(slog.LevelInfo, msg, args)
 }
 
-func logDebug(msg string) {
-	getLoggerInstance().LogAttrs(
-		context.Background(),
-		slog.LevelDebug,
-		msg)
+func logError(msg string, args ...any) {
+	logCommon(slog.LevelError, msg, args)
+}
+
+func logDebug(msg string, args ...any) {
+	logCommon(slog.LevelDebug, msg, args)
+}
+
+func logWarn(msg string, args ...any) {
+	logCommon(slog.LevelWarn, msg, args)
 }
 
 var LogInfo = logInfo
 var LogError = logError
 var LogDebug = logDebug
+var LogWarn = logWarn

@@ -1,9 +1,14 @@
 package handle
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/go-resty/resty/v2"
+	"log/slog"
 	"net/http"
+	"selfstudy/crawl/product/metadata"
+	"selfstudy/crawl/product/util"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -44,16 +49,34 @@ func getRestyClientInstance() *resty.Client {
 	return restyClient
 }
 
-func getApi() {
-	client := getRestyClientInstance()
-	resp, err := client.R().
+func getTikiProducts(pageNum int, limit int, category string) ([]metadata.Product, error) {
+	// client := getRestyClientInstance()
+	resp, err := resty.New().R().
 		EnableTrace().
-		Get("https://httpbin.org/get")
+		SetQueryParam("page", strconv.Itoa(pageNum)).
+		SetQueryParam("limit", strconv.Itoa(limit)).
+		SetQueryParam("category", category).
+		Get("https://tiki.vn/api/personalish/v1/blocks/listings")
 
 	if err != nil {
-		fmt.Println("request failed: %w", err)
+		util.LogError("request failed", slog.Any("error", err))
+		return []metadata.Product{}, err
 	}
+
 	if resp.StatusCode() >= 400 {
-		fmt.Println("bad status: %s", resp.Status())
+		util.LogDebug("", slog.Any("bad status", resp.Status()))
+		return []metadata.Product{}, err
 	}
+
+	bodyString := string(resp.Body())
+	fmt.Println(bodyString)
+	var tikiProductResponse metadata.Response
+	err = json.Unmarshal(resp.Body(), &tikiProductResponse)
+	if err != nil {
+		util.LogError("Error", slog.Any("Error ", err))
+	}
+
+	return tikiProductResponse.Data, nil
 }
+
+var GetTikiProducts = getTikiProducts
