@@ -1,7 +1,9 @@
 package handle
 
 import (
+	"bytes"
 	"encoding/json"
+	"github.com/PuerkitoBio/goquery"
 	"github.com/go-resty/resty/v2"
 	"log/slog"
 	"net/http"
@@ -35,14 +37,14 @@ func httpClient() *http.Client {
 func getRestyClientInstance() *resty.Client {
 	once.Do(func() {
 		client := resty.NewWithClient(httpClient())
-		client.SetDebug(true)
+		//	client.SetDebug(true)
 		client.SetCloseConnection(false)
 		client.SetTimeout(30 * time.Second)
 		client.SetRetryWaitTime(5 * time.Second)
 		client.SetRetryMaxWaitTime(20 * time.Second)
 		client.AddRetryCondition(
 			func(r *resty.Response, err error) bool {
-				return r.StatusCode() >= 500 // Retry on server errors
+				return r.StatusCode() >= http.StatusInternalServerError // Retry on server errors
 			},
 		)
 
@@ -54,7 +56,7 @@ func getRestyClientInstance() *resty.Client {
 func getTikiProducts(pageNum int, limit int, category string) ([]metadata.Product, error) {
 	client := getRestyClientInstance()
 	resp, err := client.R().
-		EnableTrace().
+		//	EnableTrace(). // => tracing request/response information
 		SetQueryParam("page", strconv.Itoa(pageNum)).
 		SetQueryParam("limit", strconv.Itoa(limit)).
 		SetQueryParam("category", category).
@@ -65,7 +67,7 @@ func getTikiProducts(pageNum int, limit int, category string) ([]metadata.Produc
 		return []metadata.Product{}, err
 	}
 
-	if resp.StatusCode() >= 400 {
+	if resp.StatusCode() >= http.StatusBadRequest {
 		util.LogDebug("", slog.Any("bad status", resp.Status()))
 		return []metadata.Product{}, err
 	}
@@ -81,4 +83,27 @@ func getTikiProducts(pageNum int, limit int, category string) ([]metadata.Produc
 	return tikiProductResponse.Data, nil
 }
 
+func getTikiHtmlPage(path string) (*goquery.Document, error) {
+	client := getRestyClientInstance()
+	resp, err := client.R().
+		//	EnableTrace(). // => tracing request/response information
+		Get(configuration.GetPageConfig().TikiBaseURL + path)
+
+	if err != nil {
+		util.LogError("request failed", slog.Any("error", err))
+		return &goquery.Document{}, err
+	}
+
+	if resp.StatusCode() > http.StatusBadRequest {
+		util.LogDebug("Get page false", slog.Any("bad status", resp.Status()))
+		return &goquery.Document{}, err
+	}
+
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(resp.Body()))
+
+	return doc, nil
+}
+
+// upper the first letter make it public outside of package
 var GetTikiProducts = getTikiProducts
+var GetTikiHtmlPage = getTikiHtmlPage

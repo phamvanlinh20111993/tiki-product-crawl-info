@@ -2,6 +2,7 @@ package metadata
 
 type Category struct {
 	Code                      string `json:"code"`
-	Name                      string `json:"name"`
+	Title                     string `json:"title"`
+	Path                      string `json:"path"`
 	CategoryImagePresentation string `json:"category_image_presentation"`
 }

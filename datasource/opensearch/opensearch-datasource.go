@@ -39,7 +39,7 @@ func getOpensearchClient() OpenSearchDataSource {
 			EnableRetryOnTimeout: true,
 			EnableDebugLogger:    true, // get from config
 			MaxRetries:           5,
-			RetryOnStatus:        []int{502, 503, 504},
+			RetryOnStatus:        []int{http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout}, // 502,503,504
 			Addresses:            []string{openSearchConfig.URL + ":" + strconv.Itoa(openSearchConfig.Port)},
 			//Username:  openSearchConfig.Username, // For testing only. Don't store credentials in code.
 			//Password:  openSearchConfig.Password,
