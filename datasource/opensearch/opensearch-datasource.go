@@ -15,11 +15,11 @@ type OpenSearchDataSource struct {
 }
 
 var (
-	once sync.Once
+	once             sync.Once
+	opensearchClient *opensearch.Client
 )
 
 func getOpensearchClient() OpenSearchDataSource {
-	var opensearchClient = OpenSearchDataSource{}
 	once.Do(func() {
 		client, err := opensearch.NewClient(opensearch.Config{
 			Transport: &http.Transport{
@@ -48,10 +48,10 @@ func getOpensearchClient() OpenSearchDataSource {
 			panic(err)
 		}
 
-		opensearchClient.opensearchClient = client
+		opensearchClient = client
 	})
 
-	return opensearchClient
+	return OpenSearchDataSource{opensearchClient}
 }
 
 func getOpenSearchDataSourceInstance() OpenSearchDataSource {

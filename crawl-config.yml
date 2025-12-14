@@ -1,9 +1,11 @@
 crawl:
 
   page:
-    name: "Tiki"
-    base-url: https://tiki.vn/
-    product-api-url: https://tiki.vn/api/personalish/v1/blocks/listings
+    tiki-name: "Tiki"
+    tiki-base-url: https://tiki.vn/
+    tiki-product-api-url: https://tiki.vn/api/personalish/v1/blocks/listings
+    tiki-product-api-query-param:
+      limit: 300
 
   opensearch:
     port: 9200
@@ -12,16 +14,16 @@ crawl:
     password:
 
   postgres:
-    database-url: "postgres://username:password@localhost:5432/database_name?sslmode=disable"
-    username:
-    password:
+    database-url: "postgres://postgres:postgres@localhost:5432/tiki-product?sslmode=disable"
+    username: postgres
+    password: postgres
     host: "http://localhost"
     port: 5432
-    databaseName: "dbname"
+    databaseName: "tiki-product"
 
   file:
-    path:
-    name:
+    path: F:\GitHub Repositories\Golang Projects\crawl-data-output
+    name: tiki-
 
   logger:
     level: DEBUG

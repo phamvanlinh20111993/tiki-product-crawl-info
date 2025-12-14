@@ -22,3 +22,6 @@
 
 - postgress golang: https://pkg.go.dev/github.com/jackc/pgx/v5#hdr-Establishing_a_Connection
     - connection pool: https://pkg.go.dev/github.com/jackc/pgx/v4/pgxpool
+
+- string buffer and builder in golang: https://stackoverflow.com/questions/1760757/how-to-efficiently-concatenate-strings-in-go
+      https://stackoverflow.com/questions/1760757/how-to-efficiently-concatenate-strings-in-go/47798475#47798475
