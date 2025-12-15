@@ -6,7 +6,7 @@ crawl:
     tiki-base-url: https://tiki.vn/
     tiki-product-api-url: https://tiki.vn/api/personalish/v1/blocks/listings
     tiki-product-api-query-param:
-      limit: 300
+      limit: 40
 
   opensearch:
     port: 9200

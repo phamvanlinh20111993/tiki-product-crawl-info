@@ -3,12 +3,68 @@ package util
 import (
 	"context"
 	"fmt"
+	"io"
+	"log"
 	"log/slog"
 	"os"
 	"selfstudy/crawl/product/configuration"
 	"strings"
 	"sync"
+
+	"github.com/fatih/color"
 )
+
+type PrettyHandlerOptions struct {
+	SlogOpts slog.HandlerOptions
+}
+
+type PrettyHandler struct {
+	slog.Handler
+	l *log.Logger
+}
+
+func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
+	level := r.Level.String() + ":"
+	switch r.Level {
+	case slog.LevelDebug:
+		level = color.MagentaString(level)
+	case slog.LevelInfo:
+		level = color.BlueString(level)
+	case slog.LevelWarn:
+		level = color.YellowString(level)
+	case slog.LevelError:
+		level = color.RedString(level)
+	}
+
+	fields := make(map[string]interface{}, r.NumAttrs())
+	r.Attrs(func(a slog.Attr) bool {
+		fields[a.Key] = a.Value.Any()
+		return true
+	})
+
+	//b, err := json.MarshalIndent(fields, "", "  ")
+	//if err != nil {
+	//	return err
+	//}
+	msg := color.CyanString(r.Message)
+
+	// h.l.Println(timeToString(r.Time, Format_yyyy_mm_dd_space_hh_dot_mm_dot_ss), level, msg, color.WhiteString(string(b)))
+
+	h.l.Println(timeToString(r.Time, Format_yyyy_mm_dd_space_hh_dot_mm_dot_ss), level, msg)
+	return nil
+}
+
+func NewPrettyHandler(
+	out io.Writer,
+	opts PrettyHandlerOptions,
+) *PrettyHandler {
+	h := &PrettyHandler{
+		Handler: slog.NewTextHandler(out, &opts.SlogOpts),
+		l:       log.New(out, "", 1),
+	}
+
+	return h
+}
 
 var (
 	logger *slog.Logger
@@ -21,8 +77,12 @@ const (
 )
 
 var LevelNames = map[slog.Leveler]string{
-	LevelTrace: "TRACE",
-	LevelFatal: "FATAL",
+	LevelTrace:      "TRACE",
+	LevelFatal:      "FATAL",
+	slog.LevelDebug: "DEBUG",
+	slog.LevelInfo:  "INFO",
+	slog.LevelError: "ERROR",
+	slog.LevelWarn:  "WARN",
 }
 
 var Levels = map[string]slog.Level{
@@ -37,10 +97,15 @@ var Levels = map[string]slog.Level{
 func getLoggerInstance() *slog.Logger {
 	once.Do(func() {
 		var loggerConfig = configuration.GetLoggerConfig()
-		opts := &slog.HandlerOptions{
+		slogOpts := &slog.HandlerOptions{
 			Level:     Levels[strings.ToUpper(loggerConfig.Level)],
 			AddSource: loggerConfig.IsAddSource,
 			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+				if a.Key == slog.TimeKey {
+					a.Value = slog.StringValue(
+						timeToString(a.Value.Time(), Format_yyyy_mm_dd_space_hh_dot_mm_dot_ss),
+					)
+				}
 				if a.Key == slog.LevelKey {
 					level := a.Value.Any().(slog.Level)
 					levelLabel, exists := LevelNames[level]
@@ -50,21 +115,30 @@ func getLoggerInstance() *slog.Logger {
 
 					a.Value = slog.StringValue(levelLabel)
 				}
+				if a.Key == slog.MessageKey {
+					a.Key = "message"
+				}
 				return a
 			},
 		}
-		handler := slog.NewJSONHandler(os.Stdout, opts)
+
+		//opts := PrettyHandlerOptions{
+		//	SlogOpts: *slogOpts,
+		//}
+		//handler := NewPrettyHandler(os.Stdout, opts)
+		handler := slog.NewTextHandler(os.Stdout, slogOpts)
 		logger = slog.New(handler)
 	})
 	return logger
 }
 
-func logCommon(logLevel slog.Level, msg string, val ...any) {
+func logCommon(logLevel slog.Level, msg string, args ...any) {
 	var msgFormat strings.Builder
 	var attrs []slog.Attr
-	for _, v := range val {
+
+	for _, v := range args {
 		attrValue, isSlogAttr := v.(slog.Attr)
-		if !isSlogAttr {
+		if isSlogAttr {
 			attrs = append(attrs, attrValue)
 			continue
 		}
@@ -73,6 +147,13 @@ func logCommon(logLevel slog.Level, msg string, val ...any) {
 		if isError {
 			msgFormat.WriteString(" ")
 			msgFormat.WriteString(errorValue.Error())
+			continue
+		}
+
+		strValue, isStr := v.(string)
+		if isStr {
+			msgFormat.WriteString(" ")
+			msgFormat.WriteString(strValue)
 			continue
 		}
 
@@ -88,19 +169,19 @@ func logCommon(logLevel slog.Level, msg string, val ...any) {
 }
 
 func logInfo(msg string, args ...any) {
-	logCommon(slog.LevelInfo, msg, args)
+	logCommon(slog.LevelInfo, msg, args...)
 }
 
 func logError(msg string, args ...any) {
-	logCommon(slog.LevelError, msg, args)
+	logCommon(slog.LevelError, msg, args...)
 }
 
 func logDebug(msg string, args ...any) {
-	logCommon(slog.LevelDebug, msg, args)
+	logCommon(slog.LevelDebug, msg, args...)
 }
 
 func logWarn(msg string, args ...any) {
-	logCommon(slog.LevelWarn, msg, args)
+	logCommon(slog.LevelWarn, msg, args...)
 }
 
 var LogInfo = logInfo
