@@ -13,7 +13,7 @@ type Amplitude struct {
 	CategoryL2Name                 string  `json:"category_l2_name"`
 	DeboostedHighPriceDiffPosition int     `json:"deboosted_high_price_diff_position"`
 	DiscountedByRuleIDs            string  `json:"discounted_by_rule_ids"`
-	EarliestDeliveryEstimate       int     `json:"earliest_delivery_estimate"`
+	EarliestDeliveryEstimate       float64 `json:"earliest_delivery_estimate"`
 	IsAuthentic                    int     `json:"is_authentic"`
 	IsBestOfferAvailable           bool    `json:"is_best_offer_available"`
 	IsFlashDeal                    bool    `json:"is_flash_deal"`
@@ -40,7 +40,7 @@ type Amplitude struct {
 	SellerType                     string  `json:"seller_type"`
 	StandardDeliveryEstimate       float64 `json:"standard_delivery_estimate"`
 	TikiVerified                   int     `json:"tiki_verified"`
-	TikinowDeliveryEstimate        int     `json:"tikinow_delivery_estimate"`
+	TikinowDeliveryEstimate        float64 `json:"tikinow_delivery_estimate"`
 	TikiproDeliveryEstimate        int     `json:"tikipro_delivery_estimate"`
 	Variant                        bool    `json:"variant"`
 }

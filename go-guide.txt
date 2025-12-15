@@ -29,3 +29,5 @@
 - reflect in Golang: https://dev.to/doziestar/deep-dive-into-go-reflect-package-baa
 
 - reading yml file in Golang: https://medium.com/better-programming/parsing-and-creating-yaml-in-go-crash-course-2ec10b7db850
+
+- Testing in Golang: https://go.dev/doc/tutorial/add-a-test

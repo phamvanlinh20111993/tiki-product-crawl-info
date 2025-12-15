@@ -26,7 +26,7 @@ func (t CategoryParser) Parse(document *goquery.Document) []metadata.Category {
 		var code = ""
 		splLen := len(linkSplit)
 		if splLen > 2 {
-			code = linkSplit[splLen-1]
+			code = linkSplit[splLen-1][1:]
 		}
 
 		imagePresent, isExist := tagA.Find("div picture source").Attr("srcset")
