@@ -54,10 +54,13 @@ func getProductDataByCategory(categoryCode string, lastPage int) {
 			}
 			// TODO write to file
 			jsonProductData := string(byteData)
+			util.LogInfo(jsonProductData)
 			if product.UrlPath != "" && len(product.UrlPath) > 0 {
 				// TODO write to file
-				jsonProducDetailData := getProductDetailJson(product.UrlPath)
+				jsonProductDetailData := getProductDetailJson(product.UrlPath)
+				util.LogInfo(jsonProductDetailData)
 			}
+			util.LogInfo("#####################################################################")
 		}
 	}
 
