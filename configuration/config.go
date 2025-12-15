@@ -2,13 +2,14 @@ package configuration
 
 import (
 	"errors"
-	"gopkg.in/yaml.v3"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
 	"sync"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 const ConfigFileName = "crawl-config.yml"
@@ -33,7 +34,6 @@ func getLogger() *slog.Logger {
 func reload() {
 	for {
 		time.Sleep(300 * time.Second)
-
 		getLogger().Debug("^^ Start file reload ^^")
 		dir, err := os.Getwd()
 		if err != nil {
@@ -49,12 +49,15 @@ func reload() {
 		// if time.Now().UTC().Sub(currentTime) > 15*time.Minute {
 		if info.ModTime().After(lastConfigFileModifiedTime) {
 			lastConfigFileModifiedTime = time.Now().UTC()
-			getConfigurationFromFile()
+			getConfigFromFile()
 		}
 	}
 }
 
-func getConfigurationFromFile() {
+var lock sync.Mutex
+
+func getConfigFromFile() {
+	lock.Lock()
 	dir, err := os.Getwd()
 	if err != nil {
 		getLogger().Error("Error while get current working directory" + err.Error())
@@ -94,13 +97,17 @@ func getConfigurationFromFile() {
 	}
 
 	flatMapConfig(config, "")
+	lock.Unlock()
 }
 
 func loadConfiguration() map[string]any {
 	once.Do(func() {
 		go reload()
 	})
-	getConfigurationFromFile()
+
+	if len(configMapKeyValue) < 1 {
+		getConfigFromFile()
+	}
 	return configMapKeyValue
 }
 
