@@ -37,8 +37,9 @@ type FileConfig struct {
 }
 
 type LoggerConfig struct {
-	Level       string `conf:"crawl.logger.level"`
-	IsAddSource bool   `conf:"crawl.logger.isAddSource"`
+	Level          string `conf:"crawl.logger.level"`
+	IsAddSource    bool   `conf:"crawl.logger.isAddSource"`
+	IsTraceRequest bool   `conf:"crawl.logger.isTraceRequest"`
 }
 
 const DescriptionConfigStruct = "conf"

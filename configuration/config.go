@@ -19,10 +19,11 @@ var (
 	configMapKeyValue          map[string]any
 	once                       sync.Once
 	logger                     *slog.Logger
+	onceLogger                 sync.Once
 )
 
 func getLogger() *slog.Logger {
-	once.Do(func() {
+	onceLogger.Do(func() {
 		logger = slog.New(slog.NewJSONHandler(os.Stdout,
 			&slog.HandlerOptions{
 				Level:     slog.LevelDebug,
