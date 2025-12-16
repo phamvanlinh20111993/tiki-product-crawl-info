@@ -19,10 +19,11 @@ var (
 	configMapKeyValue          map[string]any
 	once                       sync.Once
 	logger                     *slog.Logger
+	onceLogger                 sync.Once
 )
 
 func getLogger() *slog.Logger {
-	once.Do(func() {
+	onceLogger.Do(func() {
 		logger = slog.New(slog.NewJSONHandler(os.Stdout,
 			&slog.HandlerOptions{
 				Level:     slog.LevelDebug,
@@ -34,7 +35,7 @@ func getLogger() *slog.Logger {
 func reload() {
 	for {
 		time.Sleep(300 * time.Second)
-		getLogger().Debug("^^ Start file reload ^^")
+		getLogger().Debug("^^ Start reload config file ^^")
 		dir, err := os.Getwd()
 		if err != nil {
 			getLogger().Error("Error while get current working directory" + err.Error())

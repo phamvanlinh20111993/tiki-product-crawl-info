@@ -31,3 +31,5 @@
 - reading yml file in Golang: https://medium.com/better-programming/parsing-and-creating-yaml-in-go-crash-course-2ec10b7db850
 
 - Testing in Golang: https://go.dev/doc/tutorial/add-a-test
+
+- Differ between array and slice: https://www.soumendrak.com/blog/go-arrays-vs-slices/
