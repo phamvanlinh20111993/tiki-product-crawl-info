@@ -29,4 +29,4 @@ crawl:
   logger:
     level: DEBUG
     isAddSource: false
-    isTraceRequest: true
+    isTraceRequest: false

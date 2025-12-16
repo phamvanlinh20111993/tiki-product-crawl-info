@@ -77,12 +77,12 @@ const (
 )
 
 var LevelNames = map[slog.Leveler]string{
-	LevelTrace:      "TRACE",
-	LevelFatal:      "FATAL",
-	slog.LevelDebug: "DEBUG",
-	slog.LevelInfo:  "INFO",
-	slog.LevelError: "ERROR",
-	slog.LevelWarn:  "WARN",
+	LevelTrace:      "TRACE", // -8
+	slog.LevelDebug: "DEBUG", // -4
+	slog.LevelInfo:  "INFO",  // 0
+	slog.LevelWarn:  "WARN",  // 4
+	slog.LevelError: "ERROR", //8
+	LevelFatal:      "FATAL", // 12
 }
 
 var Levels = map[string]slog.Level{
@@ -169,19 +169,31 @@ func logCommon(logLevel slog.Level, msg string, args ...any) {
 }
 
 func logInfo(msg string, args ...any) {
-	logCommon(slog.LevelInfo, msg, args...)
+	var logLevel = Levels[strings.ToUpper(configuration.GetLoggerConfig().Level)]
+	if logLevel <= slog.LevelInfo {
+		logCommon(slog.LevelInfo, msg, args...)
+	}
 }
 
 func logError(msg string, args ...any) {
-	logCommon(slog.LevelError, msg, args...)
+	var logLevel = Levels[strings.ToUpper(configuration.GetLoggerConfig().Level)]
+	if logLevel <= slog.LevelError {
+		logCommon(slog.LevelError, msg, args...)
+	}
 }
 
 func logDebug(msg string, args ...any) {
-	logCommon(slog.LevelDebug, msg, args...)
+	var logLevel = Levels[strings.ToUpper(configuration.GetLoggerConfig().Level)]
+	if logLevel <= slog.LevelDebug {
+		logCommon(slog.LevelDebug, msg, args...)
+	}
 }
 
 func logWarn(msg string, args ...any) {
-	logCommon(slog.LevelWarn, msg, args...)
+	var logLevel = Levels[strings.ToUpper(configuration.GetLoggerConfig().Level)]
+	if logLevel <= slog.LevelWarn {
+		logCommon(slog.LevelWarn, msg, args...)
+	}
 }
 
 var LogInfo = logInfo

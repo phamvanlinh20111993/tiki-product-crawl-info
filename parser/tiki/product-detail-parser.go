@@ -172,5 +172,4 @@ func foundKeyInMap(inp map[string]any, keyMaps string) map[string]any {
 	}
 
 	return temp
-
 }

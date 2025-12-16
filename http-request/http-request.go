@@ -23,9 +23,9 @@ var (
 func httpClient() *http.Client {
 	client := &http.Client{
 		Transport: &http.Transport{
-			MaxIdleConns:        100, // Max idle connections in pool
-			MaxIdleConnsPerHost: 20,  // Max idle connections per host
-			IdleConnTimeout:     90 * time.Second,
+			MaxIdleConns:        16, // Max idle connections in pool
+			MaxIdleConnsPerHost: 20, // Max idle connections per host
+			IdleConnTimeout:     60 * time.Second,
 			DisableKeepAlives:   false,
 		},
 		Timeout: 30 * time.Second,
@@ -47,6 +47,17 @@ func getRestyClientInstance() *resty.Client {
 				return r.StatusCode() >= http.StatusInternalServerError // Retry on server errors
 			},
 		)
+		client.OnBeforeRequest(func(client *resty.Client, request *resty.Request) error {
+			// You can add logic here to modify the request just before it's executed
+			util.LogDebug("Preparing to send request to ", request.URL, ", Method ", request.Method)
+			if request.QueryParam != nil {
+				marshalIndent, err := json.MarshalIndent(request.QueryParam, "", "  ")
+				if err == nil {
+					util.LogDebug("QueryParam ", string(marshalIndent))
+				}
+			}
+			return nil
+		})
 
 		restyClient = client
 	})
@@ -128,9 +139,9 @@ func getHTMLPage(url string, requestParams map[string]map[string]string) (*goque
 
 	resp, err := request.
 		EnableTrace(). // => tracing request/response information
-		SetHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36").
-		SetHeader("sec-ch-ua", "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"").
-		SetHeader("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7").
+		//	SetHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36").
+		//	SetHeader("sec-ch-ua", "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"").
+		//		SetHeader("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7").
 		Get(url)
 
 	if err != nil {
@@ -162,7 +173,7 @@ func getHTMLPage(url string, requestParams map[string]map[string]string) (*goque
 	}
 
 	var responseContentType string = resp.Header().Get("content-type")
-	match, err := regexp.MatchString("text/html", responseContentType)
+	match, err := regexp.MatchString("^text/html", responseContentType)
 	if err != nil || !match {
 		panic("The webpage should return an html page")
 	}
