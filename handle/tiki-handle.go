@@ -5,11 +5,12 @@ import (
 	"math"
 	"math/rand"
 	"selfstudy/crawl/product/configuration"
+	"selfstudy/crawl/product/datasource"
 	"selfstudy/crawl/product/datasource/file"
 	httprequest "selfstudy/crawl/product/http-request"
+	"selfstudy/crawl/product/logger"
 	"selfstudy/crawl/product/metadata"
 	"selfstudy/crawl/product/parser/tiki"
-	"selfstudy/crawl/product/util"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -17,9 +18,12 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-// TODO: make it abstraction, not concrete like this
-// func crawlHandle(datasources []datasource.DataSourceI)
-func crawlHandle() {
+type TikiCrawlHandler struct {
+	input  any // TODO
+	output []datasource.DatasourceI
+}
+
+func (crawl TikiCrawlHandler) CrawlHandle() {
 	document, _ := httprequest.GetTikiHtmlPage("")
 	if document == nil {
 		panic("Error when get Tiki html page")
@@ -35,10 +39,10 @@ func crawlHandle() {
 
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	categoryFile := file.NewFileDataSource(configuration.GetFileConfig().Name + "categories")
+	categoryFile := file.NewFileDataSource(configuration.GetFileConfig().PrefixName + "categories")
 	byteData, err := json.Marshal(categories)
 	if err != nil {
-		util.LogError("Error while write json to file", err)
+		logger.LogError("Error while write json to file", err)
 	} else {
 		categoryFile.Insert(string(byteData))
 		categoryFile.Close()
@@ -50,16 +54,16 @@ func crawlHandle() {
 		productResp, err := httprequest.GetTikiProductList(1,
 			configuration.GetPageConfig().ProductAPIQueryParam.Limit, category.Code)
 		if err != nil {
-			util.LogError("Error while call product API")
+			logger.LogError("Error while call product API")
 			continue
 		}
-		util.LogDebug(category.Title, ": total product", productResp.Paging.Total)
+		logger.LogDebug(category.Title, ": total product", productResp.Paging.Total)
 		totalData += productResp.Paging.Total
 		//	wg.Go(func() {
-		getProductDataByCategory(category, productResp.Paging.LastPage, &currentCountData, &wg, doneChan, random)
+		crawl.getProductDataByCategory(category, productResp.Paging.LastPage, &currentCountData, &wg, doneChan, random)
 		//	})
 	}
-	util.LogInfo("Total product data expected to crawl: ", totalData)
+	logger.LogInfo("Total product data expected to crawl: ", totalData)
 
 	/*	wg.Add(1)
 		go func() {
@@ -83,25 +87,25 @@ func crawlHandle() {
 	//	close(doneChan)
 }
 
-func getProductDataByCategory(category metadata.Category, lastPage int, currentCountProduct *int32, wg *sync.WaitGroup, doneChan chan bool, random *rand.Rand) {
-	productFile := file.NewFileDataSource(configuration.GetFileConfig().Name + category.Title + "-" + category.Code)
-	productFileDetail := file.NewFileDataSource(configuration.GetFileConfig().Name + category.Title + "-" + category.Code + "-Detail")
+func (crawl TikiCrawlHandler) getProductDataByCategory(category metadata.Category, lastPage int, currentCountProduct *int32, wg *sync.WaitGroup, doneChan chan bool, random *rand.Rand) {
+	productFile := file.NewFileDataSource(configuration.GetFileConfig().PrefixName + category.Title + "-" + category.Code)
+	productFileDetail := file.NewFileDataSource(configuration.GetFileConfig().PrefixName + category.Title + "-" + category.Code + "-Detail")
 
 	defer productFile.Close()
 	defer productFileDetail.Close()
 	//defer wg.Done()
 
 	for pageNum := 1; pageNum <= lastPage; pageNum++ {
-		util.LogInfo("@@@@@@@@@@@@@@@@@@@@@@@@@", category.Title, ": page Number ", pageNum, "@@@@@@@@@@@@@@@@@@@@@@@@@")
+		logger.LogInfo("@@@@@@@@@@@@@@@@@@@@@@@@@", category.Title, ": page Number ", pageNum, "@@@@@@@@@@@@@@@@@@@@@@@@@")
 		productResp, err := httprequest.GetTikiProductList(pageNum,
 			configuration.GetPageConfig().ProductAPIQueryParam.Limit, category.Code)
 		if err != nil {
-			util.LogError("Error while call product API", err)
+			logger.LogError("Error while call product API", err)
 			continue
 		}
 
 		if len(productResp.Data) == 0 {
-			util.LogInfo("Product Data is empty", category.Title, ", At page", pageNum)
+			logger.LogInfo("Product Data is empty", category.Title, ", At page", pageNum)
 			continue
 		}
 
@@ -112,11 +116,19 @@ func getProductDataByCategory(category metadata.Category, lastPage int, currentC
 			product := productResp.Data[i]
 			byteData, err := json.Marshal(product)
 			if err != nil {
-				util.LogError("Error while call product API", err)
+				logger.LogError("Error while call product API", err)
 				continue
 			}
 			if product.UrlPath != "" && len(product.UrlPath) > 0 {
-				jsonProductDetailData := getProductDetailJson(product.UrlPath)
+				jsonProductDetailData, err := getProductDetailJson(product.UrlPath)
+
+				if err != nil {
+					jsonProductData := string(byteData)
+					productFile.Insert(jsonProductData)
+					i++
+					errorCount = 1
+					continue
+				}
 
 				if jsonProductDetailData != "" {
 					atomic.AddInt32((*int32)(currentCountProduct), 1)
@@ -129,14 +141,14 @@ func getProductDataByCategory(category metadata.Category, lastPage int, currentC
 				}
 				// more than 30s
 				if errorCount > 30 {
-					util.LogInfo("We cant do request forever, errorCount = ", errorCount)
+					logger.LogInfo("We can't do request forever, errorCount = ", errorCount)
 					jsonProductData := string(byteData)
 					productFile.Insert(jsonProductData)
 					i++
 					errorCount = 1
 					continue
 				}
-				util.LogInfo("Start retry with duration ", time.Duration(errorCount)*time.Second)
+				logger.LogInfo("Start retry with duration ", time.Duration(errorCount)*time.Second)
 				time.Sleep(time.Duration(errorCount) * time.Second)
 				errorCount = int(math.Round(exponential * float64(errorCount)))
 
@@ -148,25 +160,23 @@ func getProductDataByCategory(category metadata.Category, lastPage int, currentC
 	//	doneChan <- true
 }
 
-func getProductDetailJson(page string) string {
+func getProductDetailJson(page string) (string, error) {
 	document, err := httprequest.GetTikiHtmlPage(page)
 	if document == nil || document == (&goquery.Document{}) || err != nil {
-		util.LogError("Error when get Tiki html page")
-		return ""
+		logger.LogError("Error when get Tiki html page")
+		return "", err
 	}
 
 	productDetailParser := tiki.ProductDetailParser{}
 	var productDetail metadata.ProductDetail = productDetailParser.Parse(document)
 	if productDetail.ProductId <= 0 {
-		util.LogDebug("Product Id is empty at page ", page)
-		return ""
+		logger.LogDebug("Product Id is empty at page ", page)
+		return "", nil
 	}
 	byteData, err := json.Marshal(productDetail)
 	if err != nil {
 
-		util.LogError("Error while call product API", err)
+		logger.LogError("Error while call product API", err)
 	}
-	return string(byteData)
+	return string(byteData), nil
 }
-
-var CrawlHandle = crawlHandle

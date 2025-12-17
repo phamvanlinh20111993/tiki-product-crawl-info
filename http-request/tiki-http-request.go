@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"regexp"
 	"selfstudy/crawl/product/configuration"
+	"selfstudy/crawl/product/logger"
 	"selfstudy/crawl/product/metadata"
-	"selfstudy/crawl/product/util"
 	"strconv"
 
 	"github.com/PuerkitoBio/goquery"
@@ -24,30 +24,30 @@ func getTikiProductList(pageNum int, limit int, category string) (metadata.Respo
 		Get(configuration.GetPageConfig().ProductAPIURL)
 
 	if err != nil {
-		util.LogError("request failed", slog.Any("error", err))
+		logger.LogError("request failed", slog.Any("error", err))
 		return metadata.Response{}, err
 	}
 
 	if configuration.GetLoggerConfig().IsTraceRequest {
 		ti := resp.Request.TraceInfo()
 		// Explore trace info
-		util.LogDebug("Request Trace Info:")
-		util.LogDebug("  DNSLookup     :", ti.DNSLookup)
-		util.LogDebug("  ConnTime      :", ti.ConnTime)
-		util.LogDebug("  TCPConnTime   :", ti.TCPConnTime)
-		util.LogDebug("  TLSHandshake  :", ti.TLSHandshake)
-		util.LogDebug("  ServerTime    :", ti.ServerTime)
-		util.LogDebug("  ResponseTime  :", ti.ResponseTime)
-		util.LogDebug("  TotalTime     :", ti.TotalTime)
-		util.LogDebug("  IsConnReused  :", ti.IsConnReused)
-		util.LogDebug("  IsConnWasIdle :", ti.IsConnWasIdle)
-		util.LogDebug("  ConnIdleTime  :", ti.ConnIdleTime)
-		util.LogDebug("  RequestAttempt:", ti.RequestAttempt)
-		util.LogDebug("  RemoteAddr    :", ti.RemoteAddr.String())
+		logger.LogDebug("Request Trace Info:")
+		logger.LogDebug("  DNSLookup     :", ti.DNSLookup)
+		logger.LogDebug("  ConnTime      :", ti.ConnTime)
+		logger.LogDebug("  TCPConnTime   :", ti.TCPConnTime)
+		logger.LogDebug("  TLSHandshake  :", ti.TLSHandshake)
+		logger.LogDebug("  ServerTime    :", ti.ServerTime)
+		logger.LogDebug("  ResponseTime  :", ti.ResponseTime)
+		logger.LogDebug("  TotalTime     :", ti.TotalTime)
+		logger.LogDebug("  IsConnReused  :", ti.IsConnReused)
+		logger.LogDebug("  IsConnWasIdle :", ti.IsConnWasIdle)
+		logger.LogDebug("  ConnIdleTime  :", ti.ConnIdleTime)
+		logger.LogDebug("  RequestAttempt:", ti.RequestAttempt)
+		logger.LogDebug("  RemoteAddr    :", ti.RemoteAddr.String())
 	}
 
 	if resp.StatusCode() >= http.StatusBadRequest {
-		util.LogDebug("", slog.Any("bad status", resp.Status()))
+		logger.LogDebug("", slog.Any("bad status", resp.Status()))
 		return metadata.Response{}, err
 	}
 
@@ -56,7 +56,7 @@ func getTikiProductList(pageNum int, limit int, category string) (metadata.Respo
 	var tikiProductListResponse metadata.Response
 	err = json.Unmarshal(resp.Body(), &tikiProductListResponse)
 	if err != nil {
-		util.LogError("Error", slog.Any("Error ", err))
+		logger.LogError("Error", slog.Any("Error ", err))
 	}
 
 	return tikiProductListResponse, nil
@@ -72,7 +72,7 @@ func getTikiHTMLPage(path string) (*goquery.Document, error) {
 		Get(configuration.GetPageConfig().BaseURL + path)
 
 	if err != nil {
-		util.LogError("request failed", slog.Any("error", err),
+		logger.LogError("request failed", slog.Any("error", err),
 			slog.Any("url", configuration.GetPageConfig().BaseURL+path))
 		return &goquery.Document{}, err
 	}
@@ -80,23 +80,23 @@ func getTikiHTMLPage(path string) (*goquery.Document, error) {
 	if configuration.GetLoggerConfig().IsTraceRequest {
 		ti := resp.Request.TraceInfo()
 		// Explore trace info
-		util.LogDebug("Request Trace Info:")
-		util.LogDebug("  DNSLookup     :", ti.DNSLookup)
-		util.LogDebug("  ConnTime      :", ti.ConnTime)
-		util.LogDebug("  TCPConnTime   :", ti.TCPConnTime)
-		util.LogDebug("  TLSHandshake  :", ti.TLSHandshake)
-		util.LogDebug("  ServerTime    :", ti.ServerTime)
-		util.LogDebug("  ResponseTime  :", ti.ResponseTime)
-		util.LogDebug("  TotalTime     :", ti.TotalTime)
-		util.LogDebug("  IsConnReused  :", ti.IsConnReused)
-		util.LogDebug("  IsConnWasIdle :", ti.IsConnWasIdle)
-		util.LogDebug("  ConnIdleTime  :", ti.ConnIdleTime)
-		util.LogDebug("  RequestAttempt:", ti.RequestAttempt)
-		util.LogDebug("  RemoteAddr    :", ti.RemoteAddr.String())
+		logger.LogDebug("Request Trace Info:")
+		logger.LogDebug("  DNSLookup     :", ti.DNSLookup)
+		logger.LogDebug("  ConnTime      :", ti.ConnTime)
+		logger.LogDebug("  TCPConnTime   :", ti.TCPConnTime)
+		logger.LogDebug("  TLSHandshake  :", ti.TLSHandshake)
+		logger.LogDebug("  ServerTime    :", ti.ServerTime)
+		logger.LogDebug("  ResponseTime  :", ti.ResponseTime)
+		logger.LogDebug("  TotalTime     :", ti.TotalTime)
+		logger.LogDebug("  IsConnReused  :", ti.IsConnReused)
+		logger.LogDebug("  IsConnWasIdle :", ti.IsConnWasIdle)
+		logger.LogDebug("  ConnIdleTime  :", ti.ConnIdleTime)
+		logger.LogDebug("  RequestAttempt:", ti.RequestAttempt)
+		logger.LogDebug("  RemoteAddr    :", ti.RemoteAddr.String())
 	}
 
 	if resp.StatusCode() > http.StatusBadRequest {
-		util.LogDebug("Get page false", slog.Any("bad status", resp.Status()))
+		logger.LogDebug("Get page false", slog.Any("bad status", resp.Status()))
 		return &goquery.Document{}, err
 	}
 
@@ -109,7 +109,7 @@ func getTikiHTMLPage(path string) (*goquery.Document, error) {
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(resp.Body()))
 
 	if err != nil {
-		util.LogError("Error while parsing html response: ", err)
+		logger.LogError("Error while parsing html response: ", err)
 	}
 
 	return doc, nil

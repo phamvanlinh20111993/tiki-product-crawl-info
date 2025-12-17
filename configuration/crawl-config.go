@@ -2,13 +2,25 @@ package configuration
 
 import (
 	"reflect"
+	"slices"
 )
+
+// TODO we can use yaml to extract the value from yaml file but i challenge my self a bit
+// i just want to deeply learn reflection in golang
 
 type TikiPageConfig struct {
 	Name                 string              `conf:"crawl.tiki-page.name"`
 	BaseURL              string              `conf:"crawl.tiki-page.base-url"`
 	ProductAPIURL        string              `conf:"crawl.tiki-page.product-api-url"`
 	ProductAPIQueryParam TikiProductAPIQuery `conf:"crawl.tiki-page.product-api-query-param"`
+}
+
+type LazadaPageConfig struct {
+	Name                 string              `conf:"crawl.lazada-page.name"`
+	BaseURL              string              `conf:"crawl.lazada-page.base-url"`
+	ProductAPIURL        string              `conf:"crawl.lazada-page.product-api-url"`
+	ProductAPISearchURL  string              `conf:"crawl.lazada-page.product-api-search-url"`
+	ProductAPIQueryParam TikiProductAPIQuery `conf:"crawl.lazada-page.product-api-query-param"`
 }
 
 type TikiProductAPIQuery struct {
@@ -32,26 +44,24 @@ type PostgresConfig struct {
 }
 
 type FileConfig struct {
-	Path string `conf:"crawl.datasource.file-local.path"`
-	Name string `conf:"crawl.datasource.file-local.name"`
+	Path       string `conf:"crawl.datasource.file-local.path"`
+	PrefixName string `conf:"crawl.datasource.file-local.prefix-name"`
+	Extension  string `conf:"crawl.datasource.file-local.extension"`
 }
 
 type LoggerConfig struct {
-	Level          string   `conf:"crawl.logger.level"`
-	IsAddSource    bool     `conf:"crawl.logger.add-source"`
-	IsTraceRequest bool     `conf:"crawl.logger.trace-request"`
-	Target         []string `conf:"crawl.logger.target"`
-	FilePath       string   `conf:"crawl.logger.file-path"`
-	FilePattern    string   `conf:"crawl.logger.file-pattern"`
+	Level          string    `conf:"crawl.logger.level"`
+	IsAddSource    bool      `conf:"crawl.logger.add-source"`
+	IsTraceRequest bool      `conf:"crawl.logger.trace-request"`
+	Target         []string  `conf:"crawl.logger.target"`
+	Nums           []float64 `conf:"crawl.logger.nums"` // not use, just for testing
+	FilePath       string    `conf:"crawl.logger.file-path"`
+	FilePattern    string    `conf:"crawl.logger.file-pattern"`
+	Booleans       []bool    `conf:"crawl.logger.booleans"` // not use, just for testing
 }
 
 const DescriptionConfigStruct = "conf"
 
-/*
-*
-TODO need more field type to be handle
-refer: chatgpt support: https://chatgpt.com/
-*/
 func setFieldValue(field reflect.Value, value interface{}) {
 	switch field.Kind() {
 
@@ -81,10 +91,100 @@ func setFieldValue(field reflect.Value, value interface{}) {
 		}
 
 	default:
-		getLogger().Info("Unsupported type:", field.Kind())
+		getLogger().Info("func setFieldValue() Unsupported type:", field.Kind())
 	}
 }
 
+// TODO need to handle more type if needed
+func handleSliceStructElement(fieldType reflect.StructField, fieldValue reflect.Value, value interface{}) {
+	if fieldType.Type.Kind() != reflect.Slice {
+		return
+	}
+
+	v, ok := value.([]interface{})
+	if !ok {
+		getLogger().Debug("values get from map not mapping for type ", fieldType.Type.Kind())
+		return
+	}
+
+	if !slices.Contains([]reflect.Kind{reflect.String, reflect.Int, reflect.Float32, reflect.Float64, reflect.Bool}, fieldType.Type.Elem().Kind()) {
+		getLogger().Debug("Not support for this type, please change the config data field ", fieldType.Type.Elem().Kind())
+		return
+	}
+
+	if fieldType.Type.Elem().Kind() == reflect.String {
+		var strArrValue []string
+		for i := 0; i < len(v); i++ {
+			str, ok := v[i].(string)
+			if ok {
+				strArrValue = append(strArrValue, str)
+			} else {
+				getLogger().Debug("Failed to convert to string")
+				return
+			}
+		}
+		fieldValue.Set(reflect.ValueOf(strArrValue))
+	}
+
+	if fieldType.Type.Elem().Kind() == reflect.Int {
+		var intArrValue []int
+		for i := 0; i < len(v); i++ {
+			iV, ok := v[i].(int)
+			if ok {
+				intArrValue = append(intArrValue, iV)
+			} else {
+				getLogger().Debug("Failed to convert to int")
+				return
+			}
+		}
+		fieldValue.Set(reflect.ValueOf(intArrValue))
+	}
+
+	if fieldType.Type.Elem().Kind() == reflect.Float64 {
+		var floatArrValue []float64
+		for i := 0; i < len(v); i++ {
+			f64, ok := v[i].(float64)
+			if ok {
+				floatArrValue = append(floatArrValue, f64)
+			} else {
+				getLogger().Debug("Failed to convert to float64")
+				return
+			}
+		}
+		fieldValue.Set(reflect.ValueOf(floatArrValue))
+	}
+
+	if fieldType.Type.Elem().Kind() == reflect.Float32 {
+		var floatArrValue []float32
+		for i := 0; i < len(v); i++ {
+			f, ok := v[i].(float32)
+			if ok {
+				floatArrValue = append(floatArrValue, f)
+			} else {
+				getLogger().Debug("Failed to convert to float32")
+				return
+			}
+		}
+		fieldValue.Set(reflect.ValueOf(floatArrValue))
+	}
+
+	if fieldType.Type.Elem().Kind() == reflect.Bool {
+		var boolArrValue []bool
+		for i := 0; i < len(v); i++ {
+			str, ok := v[i].(bool)
+			if ok {
+				boolArrValue = append(boolArrValue, str)
+			} else {
+				getLogger().Debug("Failed to convert to bool")
+				return
+			}
+		}
+		fieldValue.Set(reflect.ValueOf(boolArrValue))
+	}
+
+}
+
+// TODO will need to improve when have new type to config
 func getStructTypeConfig(target interface{}) {
 	t := reflect.TypeOf(target)
 	v := reflect.ValueOf(target)
@@ -115,14 +215,20 @@ func getStructTypeConfig(target interface{}) {
 		}
 
 		if confKey == "" {
-			getLogger().Debug("confKey is empty: ", confKey)
+			getLogger().Debug("confKey is not filled yet, can not apply to type: ", confKey)
 			continue
 		}
 		rawValue, ok := configuration[confKey]
 		if !ok {
-			getLogger().Debug("value for confKey is empty: ", confKey)
+			getLogger().Debug("value for confKey in map is empty: ", confKey)
 			continue
 		}
+
+		if fieldType.Type.Kind() == reflect.Slice {
+			handleSliceStructElement(fieldType, fieldValue, rawValue)
+			continue
+		}
+
 		setFieldValue(fieldValue, rawValue)
 	}
 }

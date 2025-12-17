@@ -3,6 +3,7 @@ package file
 import (
 	"os"
 	"selfstudy/crawl/product/configuration"
+	"selfstudy/crawl/product/logger"
 	"selfstudy/crawl/product/util"
 )
 
@@ -11,16 +12,16 @@ type FileDataSource struct {
 	fullFilePath string
 }
 
-const extensionFile string = ".txt"
+const DOT string = "."
 
 func NewFileDataSource(fileName string) *FileDataSource {
 	var fileOpen *os.File
-	var fullFilePath string = configuration.GetFileConfig().Path + string(os.PathSeparator) + fileName + extensionFile
+	var fullFilePath string = configuration.GetFileConfig().Path + string(os.PathSeparator) + fileName + DOT + configuration.GetFileConfig().Extension
 
 	if util.IsExist(fullFilePath) {
 		fOpen, err := os.OpenFile(fullFilePath, os.O_RDWR|os.O_APPEND, 0666)
 		if err != nil {
-			util.LogError("Error while open file: ", fileName, err)
+			logger.LogError("Error while open file: ", fileName, err)
 			panic(err)
 		}
 		fileOpen = fOpen
@@ -38,7 +39,7 @@ func NewFileDataSource(fileName string) *FileDataSource {
 
 func (fd *FileDataSource) Insert(data string) {
 	if _, err := fd.connection.Write([]byte(data + util.GetLineSeperator())); err != nil {
-		util.LogError("Error while writing to file: ", fd.fullFilePath)
+		logger.LogError("Error while writing to file: ", fd.fullFilePath)
 	}
 }
 
@@ -51,6 +52,6 @@ func (fd *FileDataSource) InsertBatch(listData []string) {
 func (fd *FileDataSource) Close() {
 	err := fd.connection.Close()
 	if err != nil {
-		util.LogError("Error while closing file: ", fd.fullFilePath, err)
+		logger.LogError("Error while closing file: ", fd.fullFilePath, err)
 	}
 }

@@ -8,6 +8,12 @@ crawl:
     product-api-query-param:
       limit: 40
   lazada-page:
+    name: "Lazada"
+    base-url: https://pages.lazada.vn/
+    product-api-url: https://www.lazada.vn/dong-ho-mat-kinh-trang-suc/?ajax=true&page=60&spm=a2o4n.searchlistcategory.breadcrumb.2.dc2d3b78p5xkW9
+    product-api-search-url: https://www.lazada.vn/catalog/?ajax=true&from=hp_categories&page=5&q=Mobiles&service=all_channel&spm=a2o4n.pdp_revamp.cate_1.1.464e34934KyaDj&src=all_channel
+    product-api-query-param:
+      limit: 40
 
   datasource:
     opensearch:
@@ -26,12 +32,15 @@ crawl:
 
     file-local:
       path: F:\GitHub Repositories\Golang Projects\crawl-data-output
-      name: tiki-
+      prefix-name: crawl-
+      extension: "txt"
 
   logger:
     level: DEBUG
     add-source: false
     trace-request: false
     target: ["FILE", "STDOUT", "REMOTE"] # TODO
+    nums: [ 1.3,2.0,3.1,4.5,5.3434 ]
+    booleans: [ false, true, true, false ]
     file-path:
     file-pattern:

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"reflect"
 	"time"
 )
@@ -28,13 +29,14 @@ func ConvertJsonData[T any](jsonData []byte, instanceType T) {
 	err := decoder.Decode(&instanceType)
 
 	if err != nil {
-		logError("Error while convert JsonData to instanceType. Error: " + err.Error())
+
+		slog.Error("Error while convert JsonData to instanceType. Error: " + err.Error())
 	}
 }
 
 func printStructuralData(data any) {
 	if reflect.TypeOf(data).Kind() != reflect.Struct {
-		LogError("Structural data is not a struct")
+		slog.Error("Structural data is not a struct")
 		return
 	}
 

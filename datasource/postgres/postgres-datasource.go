@@ -2,12 +2,13 @@ package postgres
 
 import (
 	"context"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"selfstudy/crawl/product/configuration"
-	"selfstudy/crawl/product/util"
+	"selfstudy/crawl/product/logger"
 	"sync"
 	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type PostgresDataSource struct {
@@ -24,10 +25,10 @@ func NewPostgresDataSource() PostgresDataSource {
 	once.Do(func() {
 		config, err := pgxpool.ParseConfig(configuration.GetPostgresConfig().DatabaseURL)
 		if err != nil {
-			util.LogError(err.Error())
+			logger.LogError(err.Error())
 		}
 		config.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
-			util.LogDebug("Postgres Connection Established")
+			logger.LogDebug("Postgres Connection Established")
 			return nil
 		}
 		// Customize pool settings
@@ -38,27 +39,27 @@ func NewPostgresDataSource() PostgresDataSource {
 		config.HealthCheckPeriod = time.Minute
 
 		config.PrepareConn = func(ctx context.Context, c *pgx.Conn) (bool, error) {
-			util.LogDebug("Before acquiring the connection pool to the database!!")
+			logger.LogDebug("Before acquiring the connection pool to the database!!")
 			return true, nil
 		}
 
 		config.AfterRelease = func(c *pgx.Conn) bool {
-			util.LogDebug("After releasing the connection pool to the database!!")
+			logger.LogDebug("After releasing the connection pool to the database!!")
 			return true
 		}
 
 		config.BeforeClose = func(c *pgx.Conn) {
-			util.LogDebug("Closed the connection pool to the database!!")
+			logger.LogDebug("Closed the connection pool to the database!!")
 		}
 
 		config.ShouldPing = func(ctx context.Context, params pgxpool.ShouldPingParams) bool {
-			util.LogDebug("ShouldPing is called!")
+			logger.LogDebug("ShouldPing is called!")
 			return true
 		}
 
 		connPool, err := pgxpool.NewWithConfig(context.Background(), config)
 		if err != nil {
-			util.LogError(err.Error())
+			logger.LogError(err.Error())
 			panic(err)
 		}
 		postgresDataSourcePool = connPool
