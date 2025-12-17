@@ -49,10 +49,10 @@ func (crawl TikiCrawlHandler) CrawlHandle() {
 	}
 
 	// TODO handle category manually => bad
-	for i := 7; i < len(categories); i++ {
+	for i := 9; i < len(categories); i++ {
 		category := categories[i]
 		productResp, err := httprequest.GetTikiProductList(1,
-			configuration.GetPageConfig().ProductAPIQueryParam.Limit, category.Code)
+			configuration.GetTikiPageConfig().ProductAPIQueryParam.Limit, category.Code)
 		if err != nil {
 			logger.LogError("Error while call product API")
 			continue
@@ -98,7 +98,7 @@ func (crawl TikiCrawlHandler) getProductDataByCategory(category metadata.Categor
 	for pageNum := 1; pageNum <= lastPage; pageNum++ {
 		logger.LogInfo("@@@@@@@@@@@@@@@@@@@@@@@@@", category.Title, ": page Number ", pageNum, "@@@@@@@@@@@@@@@@@@@@@@@@@")
 		productResp, err := httprequest.GetTikiProductList(pageNum,
-			configuration.GetPageConfig().ProductAPIQueryParam.Limit, category.Code)
+			configuration.GetTikiPageConfig().ProductAPIQueryParam.Limit, category.Code)
 		if err != nil {
 			logger.LogError("Error while call product API", err)
 			continue
@@ -121,7 +121,6 @@ func (crawl TikiCrawlHandler) getProductDataByCategory(category metadata.Categor
 			}
 			if product.UrlPath != "" && len(product.UrlPath) > 0 {
 				jsonProductDetailData, err := getProductDetailJson(product.UrlPath)
-
 				if err != nil {
 					jsonProductData := string(byteData)
 					productFile.Insert(jsonProductData)
@@ -140,7 +139,7 @@ func (crawl TikiCrawlHandler) getProductDataByCategory(category metadata.Categor
 					continue
 				}
 				// more than 30s
-				if errorCount > 30 {
+				if errorCount > 129 {
 					logger.LogInfo("We can't do request forever, errorCount = ", errorCount)
 					jsonProductData := string(byteData)
 					productFile.Insert(jsonProductData)
@@ -163,7 +162,7 @@ func (crawl TikiCrawlHandler) getProductDataByCategory(category metadata.Categor
 func getProductDetailJson(page string) (string, error) {
 	document, err := httprequest.GetTikiHtmlPage(page)
 	if document == nil || document == (&goquery.Document{}) || err != nil {
-		logger.LogError("Error when get Tiki html page")
+		logger.LogError("Error when get Tiki product detail html page")
 		return "", err
 	}
 

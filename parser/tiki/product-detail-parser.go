@@ -17,7 +17,7 @@ const mapKeySplitMark string = ":"
 
 func (pd ProductDetailParser) Parse(document *goquery.Document) metadata.ProductDetail {
 	productDetail := metadata.ProductDetail{}
-	// fmt.Println(document.Html())
+	//	fmt.Println(document.Html())
 
 	// get image list
 	var imageList []string
@@ -102,10 +102,17 @@ func (pd ProductDetailParser) Parse(document *goquery.Document) metadata.Product
 		var productDataMap map[string]any = foundKeyInMap(jsonMap, "productData"+mapKeySplitMark+"response"+mapKeySplitMark+"data")
 		if len(productDataMap) > 0 {
 			// product description
-			productDetail.Description = productDataMap["description"].(string)
+			if v, ok := productDataMap["description"].(string); ok {
+				productDetail.Description = v
+			}
 
 			//product detail information
-			var specificationArr []interface{} = productDataMap["specifications"].([]interface{})
+			var specificationArr []interface{}
+			var ok bool
+			if specificationArr, ok = productDataMap["specifications"].([]interface{}); !ok {
+				logger.LogDebug("We can not parse this product detail, reject it")
+			}
+
 			if len(specificationArr) > 0 {
 				for _, specification := range specificationArr {
 					attributes, isOk := specification.(map[string]interface{})
