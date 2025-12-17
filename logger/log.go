@@ -3,16 +3,12 @@ package logger
 import (
 	"context"
 	"fmt"
-	"io"
-	"log"
 	"log/slog"
 	"os"
 	"selfstudy/crawl/product/configuration"
 	"selfstudy/crawl/product/util"
 	"strings"
 	"sync"
-
-	"github.com/fatih/color"
 )
 
 type PrettyHandlerOptions struct {
