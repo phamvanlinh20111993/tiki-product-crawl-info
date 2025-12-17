@@ -1,22 +1,65 @@
 
-# When face error
-WARNING: undefined behavior - version of Delve is too old for Go version go1.25.4 (maximum supported version 1.22)
-=> fix: open cmd: go install github.com/go-delve/delve/cmd/dlv@latest
+# Web Crawler (Learning Golang)
 
-# How to build + run go program
-    1. go build main.go
-    2. main.exe
+## 📌 Introduction
+This project is a **simple web crawler** built for the purpose of **learning Golang**.  
+The goal is to practice working with:
 
-# go update all modules: https://stackoverflow.com/questions/67201708/go-update-all-modules
+- HTTP requests
+- Parsing web pages
+- Handling errors properly
+- Structuring Go projects
+- Understanding concurrency (future improvement)
 
-# go project structure: https://go.dev/doc/code#ImportingLocal
+This project is **for educational purposes only**.
 
-# Command with go in cmd: 
-    - go get <dependencies>
-    - go mod tidy
-    - go get -u
-    - go list -m -u all
-    - go test
-    - go get -u && go mod tidy 
-    - go clean -modcache
-    - ...
+---
+
+## 🎯 Purpose
+- Learn Golang syntax and best practices
+- Understand how to crawl and extract data from web pages
+- Practice working with APIs, HTML parsing, and JSON
+- Improve error handling and clean code in Go
+
+---
+
+## 🚀 Features
+- Send HTTP requests to web pages
+- Crawl and extract basic data
+- Handle relative and absolute URLs
+- Generic API response handling (using Go generics)
+- Clean and simple project structure
+
+---
+
+## 🛠 Tech Stack
+- **Language:** Golang
+- **HTTP Client:** `net/http`
+- **Parsing:** `encoding/json` / `goquery` (if applicable)
+
+---
+
+## ⚠️ Disclaimer
+This project is created **only for learning purposes**.  
+Please make sure to:
+- Respect websites' `robots.txt`
+- Follow website terms of service
+- Avoid sending excessive requests
+
+---
+
+## 📂 Project Structure
+```text
+.
+├── main.go
+├── configuration/
+├── datasource/
+├── handle/
+├── http-request
+├── logger
+├── metadata
+├── parser
+├── utils
+├── crawl-config.yml
+└── README.md
+

@@ -233,7 +233,7 @@ func getStructTypeConfig(target interface{}) {
 	}
 }
 
-func getPageConfig() TikiPageConfig {
+func getTikiPageConfig() TikiPageConfig {
 	pageConfig := &TikiPageConfig{}
 	getStructTypeConfig(pageConfig)
 	return *pageConfig
@@ -263,7 +263,7 @@ func getFileConfig() FileConfig {
 	return *fileConfig
 }
 
-var GetPageConfig = getPageConfig
+var GetTikiPageConfig = getTikiPageConfig
 var GetOpenSearchConfig = getOpenSearchConfig
 var GetLoggerConfig = getLoggerConfig
 var GetPostgresConfig = getPostgresConfig

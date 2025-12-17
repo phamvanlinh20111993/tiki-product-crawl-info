@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"selfstudy/crawl/product/configuration"
+	"selfstudy/crawl/product/handle"
 	"selfstudy/crawl/product/http-request"
 	"selfstudy/crawl/product/logger"
 	"selfstudy/crawl/product/metadata"
@@ -37,7 +38,7 @@ func Test_Common(t *testing.T) {
 
 	fmt.Println("GetPostgresConfig ", configuration.GetPostgresConfig())
 
-	fmt.Println("GetPageConfig ", configuration.GetPageConfig())
+	fmt.Println("GetTikiPageConfig ", configuration.GetTikiPageConfig())
 
 	fmt.Println("###################################################################")
 
@@ -46,7 +47,7 @@ func Test_Common(t *testing.T) {
 
 func Test_TikiProduct(t *testing.T) {
 	for pageNum := 1; pageNum < 2; pageNum++ {
-		products, err := http_request.GetTikiProductList(pageNum, configuration.GetPageConfig().ProductAPIQueryParam.Limit, "15078")
+		products, err := http_request.GetTikiProductList(pageNum, configuration.GetTikiPageConfig().ProductAPIQueryParam.Limit, "15078")
 		if err != nil {
 			return
 		}
@@ -80,10 +81,11 @@ func Test1(t *testing.T) {
 func Test2_ParserProductDetail(t *testing.T) {
 
 	var pageDetails []string = []string{
-		"tuyen-tap-kiet-tac-fujiko-f-fujio-f-the-best-tang-kem-set-sticker-kho-lon-p278948895.html?spid=278948896",
-		"den-hau-xe-dap-kiotool-2-mau-xanh-do-k02-p275389988.html?spid=275389989",
-		"vali-keo-du-lich-cao-cap-bao-hanh-chinh-hang-size-24inch-ks-219-hong-nhat-p171574040.html?spid=171574041",
-		"dong-ho-casio-nam-w-218h-1bv-chinh-hang-p271299443.html?itm_campaign=CTP_YPD_TKA_PLA_UNK_ALL_UNK_UNK_UNK_UNK_X.295663_Y.1877983_Z.3979643_CN.Đong-ho-nam&itm_medium=CPC&itm_source=tiki-ads&spid=271299444",
+		//"tuyen-tap-kiet-tac-fujiko-f-fujio-f-the-best-tang-kem-set-sticker-kho-lon-p278948895.html?spid=278948896",
+		//"den-hau-xe-dap-kiotool-2-mau-xanh-do-k02-p275389988.html?spid=275389989",
+		//	"vali-keo-du-lich-cao-cap-bao-hanh-chinh-hang-size-24inch-ks-219-hong-nhat-p171574040.html?spid=171574041",
+		//	"dong-ho-casio-nam-w-218h-1bv-chinh-hang-p271299443.html?itm_campaign=CTP_YPD_TKA_PLA_UNK_ALL_UNK_UNK_UNK_UNK_X.295663_Y.1877983_Z.3979643_CN.Đong-ho-nam&itm_medium=CPC&itm_source=tiki-ads&spid=271299444",
+		"quan-jean-ong-rong-indigo-aaa-jeans-p150213680.html?spid=150213688",
 	}
 
 	for _, page := range pageDetails {
@@ -98,4 +100,8 @@ func Test2_ParserProductDetail(t *testing.T) {
 		fmt.Println(productDetail)
 	}
 
+}
+
+func Test_worker_routine_test(t *testing.T) {
+	handle.Example()
 }

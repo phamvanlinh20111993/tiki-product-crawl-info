@@ -1,4 +1,4 @@
-package http_server
+package API_server
 
 import (
 	"log"

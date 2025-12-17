@@ -3,11 +3,13 @@ package http_request
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"regexp"
 	"selfstudy/crawl/product/configuration"
 	"selfstudy/crawl/product/logger"
+	"strconv"
 	"sync"
 	"time"
 
@@ -64,19 +66,25 @@ func getRestyClientInstance() *resty.Client {
 	return restyClient
 }
 
+const QueryParams = "queryParams"
+const Headers = "headers"
+const Token = "token"
+const PathParams = "pathParams"
+
 func GetAPIData[T any](url string, requestParams map[string]map[string]string) (T, error) {
-	client := getRestyClientInstance()
+	var request *resty.Request = getRestyClientInstance().R()
 
-	var request *resty.Request = client.R()
-
-	if len(requestParams["queryParams"]) > 0 {
-		request = request.SetQueryParams(requestParams["queryParams"])
+	if len(requestParams[QueryParams]) > 0 {
+		request = request.SetQueryParams(requestParams[QueryParams])
 	}
-	if len(requestParams["headers"]) > 0 {
-		request = request.SetHeaders(requestParams["headers"])
+	if len(requestParams[Headers]) > 0 {
+		request = request.SetHeaders(requestParams[Headers])
 	}
-	if len(requestParams["token"]) > 0 && len(requestParams["token"]) < 2 {
-		request = request.SetAuthToken(requestParams["token"]["0"])
+	if len(requestParams[PathParams]) > 0 {
+		request = request.SetPathParams(requestParams[PathParams])
+	}
+	if len(requestParams[Token]) > 0 && len(requestParams[Token]) < 2 {
+		request = request.SetAuthToken(requestParams[Token]["0"])
 	}
 
 	resp, err := request.
@@ -108,8 +116,8 @@ func GetAPIData[T any](url string, requestParams map[string]map[string]string) (
 	}
 
 	if resp.StatusCode() >= http.StatusBadRequest {
-		logger.LogDebug("", slog.Any("bad status: ", resp.Status()))
-		return dataResponse, err
+		logger.LogDebug("Could not handle ", slog.Any("status: ", resp.Status()))
+		return dataResponse, errors.New("could not handle >= bad status " + strconv.Itoa(resp.StatusCode()))
 	}
 
 	//	bodyString := string(resp.Body())
@@ -119,29 +127,27 @@ func GetAPIData[T any](url string, requestParams map[string]map[string]string) (
 		logger.LogError("Error", slog.Any("Error ", err))
 	}
 
-	return dataResponse, nil
+	return dataResponse, err
 }
 
 func getHTMLPage(url string, requestParams map[string]map[string]string) (*goquery.Document, error) {
-	client := getRestyClientInstance()
+	var request *resty.Request = getRestyClientInstance().R()
 
-	var request *resty.Request = client.R()
-
-	if len(requestParams["queryParams"]) > 0 {
-		request = request.SetQueryParams(requestParams["queryParams"])
+	if len(requestParams[QueryParams]) > 0 {
+		request = request.SetQueryParams(requestParams[QueryParams])
 	}
-	if len(requestParams["headers"]) > 0 {
-		request = request.SetHeaders(requestParams["headers"])
+	if len(requestParams[PathParams]) > 0 {
+		request = request.SetPathParams(requestParams[PathParams])
 	}
-	if len(requestParams["token"]) > 0 && len(requestParams["token"]) < 2 {
-		request = request.SetAuthToken(requestParams["token"]["0"])
+	if len(requestParams[Headers]) > 0 {
+		request = request.SetHeaders(requestParams[Headers])
+	}
+	if len(requestParams[Token]) > 0 && len(requestParams[Token]) < 2 {
+		request = request.SetAuthToken(requestParams[Token]["0"])
 	}
 
 	resp, err := request.
 		EnableTrace(). // => tracing request/response information
-		//	SetHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36").
-		//	SetHeader("sec-ch-ua", "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"").
-		//		SetHeader("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7").
 		Get(url)
 
 	if err != nil {
@@ -169,7 +175,7 @@ func getHTMLPage(url string, requestParams map[string]map[string]string) (*goque
 
 	if resp.StatusCode() > http.StatusBadRequest {
 		logger.LogDebug("Get page false", slog.Any("bad status", resp.Status()))
-		return &goquery.Document{}, err
+		return &goquery.Document{}, errors.New("could not handle >= bad status " + strconv.Itoa(resp.StatusCode()))
 	}
 
 	var responseContentType string = resp.Header().Get("content-type")
@@ -184,7 +190,7 @@ func getHTMLPage(url string, requestParams map[string]map[string]string) (*goque
 		logger.LogError("Error while parsing html response: ", err)
 	}
 
-	return doc, nil
+	return doc, err
 }
 
 var GetHTMLPage = getHTMLPage
