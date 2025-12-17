@@ -21,7 +21,7 @@ func getTikiProductList(pageNum int, limit int, category string) (metadata.Respo
 		SetQueryParam("page", strconv.Itoa(pageNum)).
 		SetQueryParam("limit", strconv.Itoa(limit)).
 		SetQueryParam("category", category).
-		Get(configuration.GetPageConfig().TikiProductAPIURL)
+		Get(configuration.GetPageConfig().ProductAPIURL)
 
 	if err != nil {
 		util.LogError("request failed", slog.Any("error", err))
@@ -69,11 +69,11 @@ func getTikiHTMLPage(path string) (*goquery.Document, error) {
 		//	SetHeader("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36").
 		//		SetHeader("sec-ch-ua", "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"").
 		//	SetHeader("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7").
-		Get(configuration.GetPageConfig().TikiBaseURL + path)
+		Get(configuration.GetPageConfig().BaseURL + path)
 
 	if err != nil {
 		util.LogError("request failed", slog.Any("error", err),
-			slog.Any("url", configuration.GetPageConfig().TikiBaseURL+path))
+			slog.Any("url", configuration.GetPageConfig().BaseURL+path))
 		return &goquery.Document{}, err
 	}
 

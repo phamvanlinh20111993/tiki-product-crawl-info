@@ -4,42 +4,45 @@ import (
 	"reflect"
 )
 
-type PageConfig struct {
-	TikiName                 string              `conf:"crawl.page.tiki-name"`
-	TikiBaseURL              string              `conf:"crawl.page.tiki-base-url"`
-	TikiProductAPIURL        string              `conf:"crawl.page.tiki-product-api-url"`
-	TikiProductAPIQueryParam TikiProductAPIQuery `conf:"crawl.page.tiki-product-api-query-param"`
+type TikiPageConfig struct {
+	Name                 string              `conf:"crawl.tiki-page.name"`
+	BaseURL              string              `conf:"crawl.tiki-page.base-url"`
+	ProductAPIURL        string              `conf:"crawl.tiki-page.product-api-url"`
+	ProductAPIQueryParam TikiProductAPIQuery `conf:"crawl.tiki-page.product-api-query-param"`
 }
 
 type TikiProductAPIQuery struct {
-	Limit int `conf:"crawl.page.tiki-product-api-query-param.limit"`
+	Limit int `conf:"crawl.tiki-page.product-api-query-param.limit"`
 }
 
 type OpenSearchConfig struct {
-	Port     int    `conf:"crawl.opensearch.port"`
-	URL      string `conf:"crawl.opensearch.url"`
-	Username string `conf:"crawl.opensearch.username"`
-	Password string `conf:"crawl.opensearch.password"`
+	Port     int    `conf:"crawl.datasource.opensearch.port"`
+	URL      string `conf:"crawl.datasource.opensearch.url"`
+	Username string `conf:"crawl.datasource.opensearch.username"`
+	Password string `conf:"crawl.datasource.opensearch.password"`
 }
 
 type PostgresConfig struct {
-	DatabaseURL  string `conf:"crawl.postgres.database-url"`
-	Username     string `conf:"crawl.postgres.username"`
-	Password     string `conf:"crawl.postgres.password"`
-	Host         string `conf:"crawl.postgres.host"`
-	Port         int    `conf:"crawl.postgres.port"`
-	DatabaseName string `conf:"crawl.postgres.databaseName"`
+	DatabaseURL  string `conf:"crawl.datasource.postgres.database-url"`
+	Username     string `conf:"crawl.datasource.postgres.username"`
+	Password     string `conf:"crawl.datasource.postgres.password"`
+	Host         string `conf:"crawl.datasource.postgres.host"`
+	Port         int    `conf:"crawl.datasource.postgres.port"`
+	DatabaseName string `conf:"crawl.datasource.postgres.databaseName"`
 }
 
 type FileConfig struct {
-	Path string `conf:"crawl.file.path"`
-	Name string `conf:"crawl.file.name"`
+	Path string `conf:"crawl.datasource.file-local.path"`
+	Name string `conf:"crawl.datasource.file-local.name"`
 }
 
 type LoggerConfig struct {
-	Level          string `conf:"crawl.logger.level"`
-	IsAddSource    bool   `conf:"crawl.logger.isAddSource"`
-	IsTraceRequest bool   `conf:"crawl.logger.isTraceRequest"`
+	Level          string   `conf:"crawl.logger.level"`
+	IsAddSource    bool     `conf:"crawl.logger.add-source"`
+	IsTraceRequest bool     `conf:"crawl.logger.trace-request"`
+	Target         []string `conf:"crawl.logger.target"`
+	FilePath       string   `conf:"crawl.logger.file-path"`
+	FilePattern    string   `conf:"crawl.logger.file-pattern"`
 }
 
 const DescriptionConfigStruct = "conf"
@@ -124,8 +127,8 @@ func getStructTypeConfig(target interface{}) {
 	}
 }
 
-func getPageConfig() PageConfig {
-	pageConfig := &PageConfig{}
+func getPageConfig() TikiPageConfig {
+	pageConfig := &TikiPageConfig{}
 	getStructTypeConfig(pageConfig)
 	return *pageConfig
 }

@@ -17,6 +17,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+// TODO: make it abstraction, not concrete like this
+// func crawlHandle(datasources []datasource.DataSourceI)
 func crawlHandle() {
 	document, _ := httprequest.GetTikiHtmlPage("")
 	if document == nil {
@@ -42,10 +44,11 @@ func crawlHandle() {
 		categoryFile.Close()
 	}
 
-	for i := 1; i < len(categories); i++ {
+	// TODO handle category manually => bad
+	for i := 7; i < len(categories); i++ {
 		category := categories[i]
 		productResp, err := httprequest.GetTikiProductList(1,
-			configuration.GetPageConfig().TikiProductAPIQueryParam.Limit, category.Code)
+			configuration.GetPageConfig().ProductAPIQueryParam.Limit, category.Code)
 		if err != nil {
 			util.LogError("Error while call product API")
 			continue
@@ -91,7 +94,7 @@ func getProductDataByCategory(category metadata.Category, lastPage int, currentC
 	for pageNum := 1; pageNum <= lastPage; pageNum++ {
 		util.LogInfo("@@@@@@@@@@@@@@@@@@@@@@@@@", category.Title, ": page Number ", pageNum, "@@@@@@@@@@@@@@@@@@@@@@@@@")
 		productResp, err := httprequest.GetTikiProductList(pageNum,
-			configuration.GetPageConfig().TikiProductAPIQueryParam.Limit, category.Code)
+			configuration.GetPageConfig().ProductAPIQueryParam.Limit, category.Code)
 		if err != nil {
 			util.LogError("Error while call product API", err)
 			continue
@@ -122,16 +125,21 @@ func getProductDataByCategory(category metadata.Category, lastPage int, currentC
 					productFileDetail.Insert(jsonProductDetailData)
 					i++
 					errorCount = 1
-				} else {
-					// more than 30s
-					if errorCount > 30 {
-						util.LogInfo("We cant do request forever, errorCount = ", errorCount)
-						continue
-					}
-					util.LogInfo("Start retry with duration ", time.Duration(errorCount)*time.Second)
-					time.Sleep(time.Duration(errorCount) * time.Second)
-					errorCount = int(math.Round(exponential * float64(errorCount)))
+					continue
 				}
+				// more than 30s
+				if errorCount > 30 {
+					util.LogInfo("We cant do request forever, errorCount = ", errorCount)
+					jsonProductData := string(byteData)
+					productFile.Insert(jsonProductData)
+					i++
+					errorCount = 1
+					continue
+				}
+				util.LogInfo("Start retry with duration ", time.Duration(errorCount)*time.Second)
+				time.Sleep(time.Duration(errorCount) * time.Second)
+				errorCount = int(math.Round(exponential * float64(errorCount)))
+
 			}
 			// time.Sleep(250 * time.Microsecond)
 		}

@@ -46,7 +46,7 @@ func Test_Common(t *testing.T) {
 
 func Test_TikiProduct(t *testing.T) {
 	for pageNum := 1; pageNum < 2; pageNum++ {
-		products, err := http_request.GetTikiProductList(pageNum, configuration.GetPageConfig().TikiProductAPIQueryParam.Limit, "15078")
+		products, err := http_request.GetTikiProductList(pageNum, configuration.GetPageConfig().ProductAPIQueryParam.Limit, "15078")
 		if err != nil {
 			return
 		}
