@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"regexp"
 	"selfstudy/crawl/product/configuration"
-	"selfstudy/crawl/product/util"
+	"selfstudy/crawl/product/logger"
 	"sync"
 	"time"
 
@@ -49,11 +49,11 @@ func getRestyClientInstance() *resty.Client {
 		)
 		client.OnBeforeRequest(func(client *resty.Client, request *resty.Request) error {
 			// You can add logic here to modify the request just before it's executed
-			util.LogDebug("Preparing to send request to ", request.URL, ", Method ", request.Method)
+			logger.LogDebug("Preparing to send request to ", request.URL, ", Method ", request.Method)
 			if request.QueryParam != nil {
 				marshalIndent, err := json.MarshalIndent(request.QueryParam, "", "  ")
 				if err == nil {
-					util.LogDebug("QueryParam ", string(marshalIndent))
+					logger.LogDebug("QueryParam ", string(marshalIndent))
 				}
 			}
 			return nil
@@ -85,30 +85,30 @@ func GetAPIData[T any](url string, requestParams map[string]map[string]string) (
 
 	var dataResponse T
 	if err != nil {
-		util.LogError("request failed", slog.Any("error", err))
+		logger.LogError("request failed", slog.Any("error", err))
 		return dataResponse, err
 	}
 
 	if configuration.GetLoggerConfig().IsTraceRequest {
 		ti := resp.Request.TraceInfo()
 		// Explore trace info
-		util.LogDebug("Request Trace Info:")
-		util.LogDebug("  DNSLookup     :", ti.DNSLookup)
-		util.LogDebug("  ConnTime      :", ti.ConnTime)
-		util.LogDebug("  TCPConnTime   :", ti.TCPConnTime)
-		util.LogDebug("  TLSHandshake  :", ti.TLSHandshake)
-		util.LogDebug("  ServerTime    :", ti.ServerTime)
-		util.LogDebug("  ResponseTime  :", ti.ResponseTime)
-		util.LogDebug("  TotalTime     :", ti.TotalTime)
-		util.LogDebug("  IsConnReused  :", ti.IsConnReused)
-		util.LogDebug("  IsConnWasIdle :", ti.IsConnWasIdle)
-		util.LogDebug("  ConnIdleTime  :", ti.ConnIdleTime)
-		util.LogDebug("  RequestAttempt:", ti.RequestAttempt)
-		util.LogDebug("  RemoteAddr    :", ti.RemoteAddr.String())
+		logger.LogDebug("Request Trace Info:")
+		logger.LogDebug("  DNSLookup     :", ti.DNSLookup)
+		logger.LogDebug("  ConnTime      :", ti.ConnTime)
+		logger.LogDebug("  TCPConnTime   :", ti.TCPConnTime)
+		logger.LogDebug("  TLSHandshake  :", ti.TLSHandshake)
+		logger.LogDebug("  ServerTime    :", ti.ServerTime)
+		logger.LogDebug("  ResponseTime  :", ti.ResponseTime)
+		logger.LogDebug("  TotalTime     :", ti.TotalTime)
+		logger.LogDebug("  IsConnReused  :", ti.IsConnReused)
+		logger.LogDebug("  IsConnWasIdle :", ti.IsConnWasIdle)
+		logger.LogDebug("  ConnIdleTime  :", ti.ConnIdleTime)
+		logger.LogDebug("  RequestAttempt:", ti.RequestAttempt)
+		logger.LogDebug("  RemoteAddr    :", ti.RemoteAddr.String())
 	}
 
 	if resp.StatusCode() >= http.StatusBadRequest {
-		util.LogDebug("", slog.Any("bad status: ", resp.Status()))
+		logger.LogDebug("", slog.Any("bad status: ", resp.Status()))
 		return dataResponse, err
 	}
 
@@ -116,7 +116,7 @@ func GetAPIData[T any](url string, requestParams map[string]map[string]string) (
 	//	fmt.Println(bodyString)
 	err = json.Unmarshal(resp.Body(), &dataResponse)
 	if err != nil {
-		util.LogError("Error", slog.Any("Error ", err))
+		logger.LogError("Error", slog.Any("Error ", err))
 	}
 
 	return dataResponse, nil
@@ -145,30 +145,30 @@ func getHTMLPage(url string, requestParams map[string]map[string]string) (*goque
 		Get(url)
 
 	if err != nil {
-		util.LogError("request failed", slog.Any("error", err))
+		logger.LogError("request failed", slog.Any("error", err))
 		return &goquery.Document{}, err
 	}
 
 	if configuration.GetLoggerConfig().IsTraceRequest {
 		ti := resp.Request.TraceInfo()
 		// Explore trace info
-		util.LogDebug("Request Trace Info:")
-		util.LogDebug("  DNSLookup     :", ti.DNSLookup)
-		util.LogDebug("  ConnTime      :", ti.ConnTime)
-		util.LogDebug("  TCPConnTime   :", ti.TCPConnTime)
-		util.LogDebug("  TLSHandshake  :", ti.TLSHandshake)
-		util.LogDebug("  ServerTime    :", ti.ServerTime)
-		util.LogDebug("  ResponseTime  :", ti.ResponseTime)
-		util.LogDebug("  TotalTime     :", ti.TotalTime)
-		util.LogDebug("  IsConnReused  :", ti.IsConnReused)
-		util.LogDebug("  IsConnWasIdle :", ti.IsConnWasIdle)
-		util.LogDebug("  ConnIdleTime  :", ti.ConnIdleTime)
-		util.LogDebug("  RequestAttempt:", ti.RequestAttempt)
-		util.LogDebug("  RemoteAddr    :", ti.RemoteAddr.String())
+		logger.LogDebug("Request Trace Info:")
+		logger.LogDebug("  DNSLookup     :", ti.DNSLookup)
+		logger.LogDebug("  ConnTime      :", ti.ConnTime)
+		logger.LogDebug("  TCPConnTime   :", ti.TCPConnTime)
+		logger.LogDebug("  TLSHandshake  :", ti.TLSHandshake)
+		logger.LogDebug("  ServerTime    :", ti.ServerTime)
+		logger.LogDebug("  ResponseTime  :", ti.ResponseTime)
+		logger.LogDebug("  TotalTime     :", ti.TotalTime)
+		logger.LogDebug("  IsConnReused  :", ti.IsConnReused)
+		logger.LogDebug("  IsConnWasIdle :", ti.IsConnWasIdle)
+		logger.LogDebug("  ConnIdleTime  :", ti.ConnIdleTime)
+		logger.LogDebug("  RequestAttempt:", ti.RequestAttempt)
+		logger.LogDebug("  RemoteAddr    :", ti.RemoteAddr.String())
 	}
 
 	if resp.StatusCode() > http.StatusBadRequest {
-		util.LogDebug("Get page false", slog.Any("bad status", resp.Status()))
+		logger.LogDebug("Get page false", slog.Any("bad status", resp.Status()))
 		return &goquery.Document{}, err
 	}
 
@@ -181,7 +181,7 @@ func getHTMLPage(url string, requestParams map[string]map[string]string) (*goque
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(resp.Body()))
 
 	if err != nil {
-		util.LogError("Error while parsing html response: ", err)
+		logger.LogError("Error while parsing html response: ", err)
 	}
 
 	return doc, nil

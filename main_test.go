@@ -4,21 +4,21 @@ import (
 	"fmt"
 	"selfstudy/crawl/product/configuration"
 	"selfstudy/crawl/product/http-request"
+	"selfstudy/crawl/product/logger"
 	"selfstudy/crawl/product/metadata"
 	"selfstudy/crawl/product/parser/tiki"
-	"selfstudy/crawl/product/util"
 	"strconv"
 	"testing"
 )
 
 func Test_Common(t *testing.T) {
-	util.LogInfo("Hello world Michael Pham")
+	logger.LogInfo("Hello world Michael Pham")
 
-	util.LogError("Hello world Michael Pham")
+	logger.LogError("Hello world Michael Pham")
 
-	util.LogWarn("Hello world Michael Pham")
+	logger.LogWarn("Hello world Michael Pham")
 
-	util.LogDebug("Hello world Michael Pham")
+	logger.LogDebug("Hello world Michael Pham")
 
 	fmt.Println("###################################################################")
 
@@ -46,7 +46,7 @@ func Test_Common(t *testing.T) {
 
 func Test_TikiProduct(t *testing.T) {
 	for pageNum := 1; pageNum < 2; pageNum++ {
-		products, err := http_request.GetTikiProductList(pageNum, configuration.GetPageConfig().TikiProductAPIQueryParam.Limit, "15078")
+		products, err := http_request.GetTikiProductList(pageNum, configuration.GetPageConfig().ProductAPIQueryParam.Limit, "15078")
 		if err != nil {
 			return
 		}

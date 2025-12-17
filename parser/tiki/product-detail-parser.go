@@ -3,8 +3,8 @@ package tiki
 import (
 	"encoding/json"
 	"regexp"
+	"selfstudy/crawl/product/logger"
 	"selfstudy/crawl/product/metadata"
-	"selfstudy/crawl/product/util"
 	"strconv"
 	"strings"
 
@@ -93,7 +93,7 @@ func (pd ProductDetailParser) Parse(document *goquery.Document) metadata.Product
 		jsonData := element.Text()
 		err := json.Unmarshal([]byte(jsonData), &jsonMap)
 		if err != nil {
-			util.LogError("Error unmarshalling JSON:", err)
+			logger.LogError("Error unmarshalling JSON:", err)
 			return
 		}
 	})
@@ -166,7 +166,7 @@ func foundKeyInMap(inp map[string]any, keyMaps string) map[string]any {
 			temp = result
 		} else {
 			temp = nil
-			util.LogDebug("Can not found data for key ", keyMap)
+			logger.LogDebug("Can not found data for key ", keyMap)
 			break
 		}
 	}

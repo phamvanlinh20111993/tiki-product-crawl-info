@@ -1,69 +1,18 @@
-package util
+package logger
 
 import (
 	"context"
 	"fmt"
-	"io"
-	"log"
 	"log/slog"
 	"os"
 	"selfstudy/crawl/product/configuration"
+	"selfstudy/crawl/product/util"
 	"strings"
 	"sync"
-
-	"github.com/fatih/color"
 )
 
 type PrettyHandlerOptions struct {
 	SlogOpts slog.HandlerOptions
-}
-
-type PrettyHandler struct {
-	slog.Handler
-	l *log.Logger
-}
-
-func (h *PrettyHandler) Handle(ctx context.Context, r slog.Record) error {
-	level := r.Level.String() + ":"
-	switch r.Level {
-	case slog.LevelDebug:
-		level = color.MagentaString(level)
-	case slog.LevelInfo:
-		level = color.BlueString(level)
-	case slog.LevelWarn:
-		level = color.YellowString(level)
-	case slog.LevelError:
-		level = color.RedString(level)
-	}
-
-	fields := make(map[string]interface{}, r.NumAttrs())
-	r.Attrs(func(a slog.Attr) bool {
-		fields[a.Key] = a.Value.Any()
-		return true
-	})
-
-	//b, err := json.MarshalIndent(fields, "", "  ")
-	//if err != nil {
-	//	return err
-	//}
-	msg := color.CyanString(r.Message)
-
-	// h.l.Println(timeToString(r.Time, Format_yyyy_mm_dd_space_hh_dot_mm_dot_ss), level, msg, color.WhiteString(string(b)))
-
-	h.l.Println(timeToString(r.Time, Format_yyyy_mm_dd_space_hh_dot_mm_dot_ss), level, msg)
-	return nil
-}
-
-func NewPrettyHandler(
-	out io.Writer,
-	opts PrettyHandlerOptions,
-) *PrettyHandler {
-	h := &PrettyHandler{
-		Handler: slog.NewTextHandler(out, &opts.SlogOpts),
-		l:       log.New(out, "", 1),
-	}
-
-	return h
 }
 
 var (
@@ -103,7 +52,7 @@ func getLoggerInstance() *slog.Logger {
 			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
 				if a.Key == slog.TimeKey {
 					a.Value = slog.StringValue(
-						timeToString(a.Value.Time(), Format_yyyy_mm_dd_space_hh_dot_mm_dot_ss),
+						util.TimeToString(a.Value.Time(), util.Format_yyyy_mm_dd_space_hh_dot_mm_dot_ss),
 					)
 				}
 				if a.Key == slog.LevelKey {

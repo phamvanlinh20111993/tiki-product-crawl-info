@@ -2,6 +2,7 @@ package main
 
 import (
 	"selfstudy/crawl/product/configuration"
+	"selfstudy/crawl/product/datasource/file"
 	"selfstudy/crawl/product/handle"
 	"selfstudy/crawl/product/util"
 )
@@ -9,5 +10,13 @@ import (
 func main() {
 	util.RemoveDir(configuration.GetFileConfig().Path)
 	util.CreateDir(configuration.GetFileConfig().Path)
-	handle.CrawlHandle()
+
+	handle.TikiCrawlHandler{}.CrawlHandle()
+
+	//http_server.HttpServer()
+}
+
+// TODO handle later
+func createFileDataSource() file.FileDataSource {
+	return file.FileDataSource{}
 }

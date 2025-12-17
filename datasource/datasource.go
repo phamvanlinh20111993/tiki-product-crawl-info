@@ -1,6 +1,6 @@
 package datasource
 
-type datasourceI interface {
+type DatasourceI interface {
 	// connect()
 	insert()
 	insertBatch()
