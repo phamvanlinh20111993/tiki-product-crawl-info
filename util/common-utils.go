@@ -34,6 +34,7 @@ func ConvertJsonData[T any](jsonData []byte, instanceType T) {
 	}
 }
 
+// TODO we can use json.MarshalIndend(), suggest handle manually
 func printStructuralData(data any) {
 	if reflect.TypeOf(data).Kind() != reflect.Struct {
 		slog.Error("Structural data is not a struct")

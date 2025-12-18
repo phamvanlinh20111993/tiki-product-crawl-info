@@ -38,7 +38,7 @@ func (crawl TikiCrawlHandler) CrawlHandle() {
 	doneChan := make(chan bool, len(categories))
 
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-
+	// get category file
 	categoryFile := file.NewFileDataSource(configuration.GetFileConfig().PrefixName + "categories")
 	byteData, err := json.Marshal(categories)
 	if err != nil {
@@ -47,9 +47,25 @@ func (crawl TikiCrawlHandler) CrawlHandle() {
 		categoryFile.Insert(string(byteData))
 		categoryFile.Close()
 	}
+	// get category file
+	categoryFilePath := file.NewFileDataSource(configuration.GetFileConfig().PrefixName + "categories-path")
+	defer categoryFilePath.Close()
+	for _, category := range categories {
+		categoryPaths, err := httprequest.GetTikiProductCategoryPathList(category.Code)
+		if err != nil {
+			logger.LogError("Error while get category path api", err)
+			continue
+		}
+		byteData, err := json.Marshal(categoryPaths)
+		if err != nil {
+			logger.LogError("Error while write json to file", err)
+			continue
+		}
+		categoryFilePath.Insert(string(byteData))
+	}
 
 	// TODO handle category manually => bad
-	for i := 9; i < len(categories); i++ {
+	for i := 0; i < len(categories); i++ {
 		category := categories[i]
 		productResp, err := httprequest.GetTikiProductList(1,
 			configuration.GetTikiPageConfig().ProductAPIQueryParam.Limit, category.Code)
@@ -87,7 +103,7 @@ func (crawl TikiCrawlHandler) CrawlHandle() {
 	//	close(doneChan)
 }
 
-func (crawl TikiCrawlHandler) getProductDataByCategory(category metadata.Category, lastPage int, currentCountProduct *int32, wg *sync.WaitGroup, doneChan chan bool, random *rand.Rand) {
+func (crawl TikiCrawlHandler) getProductDataByCategory(category metadata.CategoryRoot, lastPage int, currentCountProduct *int32, wg *sync.WaitGroup, doneChan chan bool, random *rand.Rand) {
 	productFile := file.NewFileDataSource(configuration.GetFileConfig().PrefixName + category.Title + "-" + category.Code)
 	productFileDetail := file.NewFileDataSource(configuration.GetFileConfig().PrefixName + category.Title + "-" + category.Code + "-Detail")
 
@@ -138,7 +154,7 @@ func (crawl TikiCrawlHandler) getProductDataByCategory(category metadata.Categor
 					errorCount = 1
 					continue
 				}
-				// more than 30s
+				// more than 129s 2^7, 7 time
 				if errorCount > 129 {
 					logger.LogInfo("We can't do request forever, errorCount = ", errorCount)
 					jsonProductData := string(byteData)

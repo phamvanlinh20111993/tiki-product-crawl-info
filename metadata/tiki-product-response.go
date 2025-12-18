@@ -1,6 +1,6 @@
 package metadata
 
-type Response struct {
+type ProductAPIResponse struct {
 	Block  Block     `json:"block"`
 	Data   []Product `json:"data"`
 	Paging Paging    `json:"paging"`

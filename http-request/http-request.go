@@ -181,7 +181,8 @@ func getHTMLPage(url string, requestParams map[string]map[string]string) (*goque
 	var responseContentType string = resp.Header().Get("content-type")
 	match, err := regexp.MatchString("^text/html", responseContentType)
 	if err != nil || !match {
-		panic("The webpage should return an html page")
+		logger.LogError("The webpage should return an html page")
+		return &goquery.Document{}, err
 	}
 
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(resp.Body()))
