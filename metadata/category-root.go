@@ -1,6 +1,6 @@
 package metadata
 
-type Category struct {
+type CategoryRoot struct {
 	Code                      string `json:"code"`
 	Title                     string `json:"title"`
 	Path                      string `json:"path"`

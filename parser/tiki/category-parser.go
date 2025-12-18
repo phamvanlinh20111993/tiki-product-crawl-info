@@ -10,8 +10,8 @@ import (
 
 type CategoryParser struct{}
 
-func (t CategoryParser) Parse(document *goquery.Document) []metadata.Category {
-	var categories []metadata.Category
+func (t CategoryParser) Parse(document *goquery.Document) []metadata.CategoryRoot {
+	var categories []metadata.CategoryRoot
 
 	document.Find("main a").Each(func(_ int, tagA *goquery.Selection) {
 
@@ -40,7 +40,7 @@ func (t CategoryParser) Parse(document *goquery.Document) []metadata.Category {
 
 			title, _ := tagA.Attr("title")
 
-			category := metadata.Category{Code: code, Title: title,
+			category := metadata.CategoryRoot{Code: code, Title: title,
 				Path: link, CategoryImagePresentation: categoryImagePresentation}
 			categories = append(categories, category)
 		}

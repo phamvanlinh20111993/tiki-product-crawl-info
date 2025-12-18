@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"selfstudy/crawl/product/configuration"
+	"selfstudy/crawl/product/datasource/file"
 	"selfstudy/crawl/product/handle"
 	"selfstudy/crawl/product/http-request"
 	"selfstudy/crawl/product/logger"
@@ -104,4 +106,33 @@ func Test2_ParserProductDetail(t *testing.T) {
 
 func Test_worker_routine_test(t *testing.T) {
 	handle.Example()
+}
+
+func Test_category_path_example(t *testing.T) {
+	document, _ := http_request.GetTikiHtmlPage("")
+	if document == nil {
+		panic("Error when get Tiki html page")
+	}
+
+	categoryParser := tiki.CategoryParser{}
+	var categories = categoryParser.Parse(document)
+
+	categoryFilePath := file.NewFileDataSource(configuration.GetFileConfig().PrefixName + "categories-path")
+	for i := 0; i < len(categories); i++ {
+		category := categories[i]
+		categoryPaths, err := http_request.GetTikiProductCategoryPathList(category.Code)
+		if err != nil {
+			logger.LogError("Error ", err)
+			continue
+		}
+		byteData, err := json.Marshal(categoryPaths)
+		if err != nil {
+			logger.LogError("Error while write json to file", err)
+			continue
+		}
+
+		categoryFilePath.Insert(string(byteData))
+	}
+
+	defer categoryFilePath.Close()
 }
