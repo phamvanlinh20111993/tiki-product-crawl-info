@@ -23,6 +23,8 @@ var (
 const (
 	LevelTrace = slog.Level(-8)
 	LevelFatal = slog.Level(12)
+	TargetFile = "FILE"
+	TargetCmd  = "CMD"
 )
 
 var LevelNames = map[slog.Leveler]string{
@@ -43,41 +45,57 @@ var Levels = map[string]slog.Level{
 	"WARN":  slog.LevelWarn,
 }
 
-func getLoggerInstance() *slog.Logger {
+func slogOption() *slog.HandlerOptions {
+	var loggerConfig = configuration.GetLoggerConfig()
+	return &slog.HandlerOptions{
+		Level:     Levels[strings.ToUpper(loggerConfig.Level)],
+		AddSource: loggerConfig.IsAddSource,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.TimeKey {
+				a.Value = slog.StringValue(
+					util.TimeToString(a.Value.Time(), util.Format_yyyy_mm_dd_space_hh_dot_mm_dot_ss),
+				)
+			}
+			if a.Key == slog.LevelKey {
+				level := a.Value.Any().(slog.Level)
+				levelLabel, exists := LevelNames[level]
+				if !exists {
+					levelLabel = level.String()
+				}
+
+				a.Value = slog.StringValue(levelLabel)
+			}
+			if a.Key == slog.MessageKey {
+				a.Key = "message"
+			}
+			return a
+		},
+	}
+}
+
+func getLoggerStdoutInstance() *slog.Logger {
 	once.Do(func() {
-		var loggerConfig = configuration.GetLoggerConfig()
-		slogOpts := &slog.HandlerOptions{
-			Level:     Levels[strings.ToUpper(loggerConfig.Level)],
-			AddSource: loggerConfig.IsAddSource,
-			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-				if a.Key == slog.TimeKey {
-					a.Value = slog.StringValue(
-						util.TimeToString(a.Value.Time(), util.Format_yyyy_mm_dd_space_hh_dot_mm_dot_ss),
-					)
-				}
-				if a.Key == slog.LevelKey {
-					level := a.Value.Any().(slog.Level)
-					levelLabel, exists := LevelNames[level]
-					if !exists {
-						levelLabel = level.String()
-					}
-
-					a.Value = slog.StringValue(levelLabel)
-				}
-				if a.Key == slog.MessageKey {
-					a.Key = "message"
-				}
-				return a
-			},
-		}
-
 		//opts := PrettyHandlerOptions{
 		//	SlogOpts: *slogOpts,
 		//}
 		//handler := NewPrettyHandler(os.Stdout, opts)
-		handler := slog.NewTextHandler(os.Stdout, slogOpts)
+		handler := slog.NewTextHandler(os.Stdout, slogOption())
 		logger = slog.New(handler)
 	})
+	return logger
+}
+
+func getLoggerFileInstance() *slog.Logger {
+	logFile, err := os.OpenFile("application.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+
+	defer logFile.Close()
+
+	//handler := NewPrettyHandler(os.Stdout, opts)
+	handler := slog.NewTextHandler(logFile, slogOption())
+	logger = slog.New(handler)
 	return logger
 }
 
@@ -110,11 +128,24 @@ func logCommon(logLevel slog.Level, msg string, args ...any) {
 		msgFormat.WriteString(fmt.Sprintf("%v", v))
 	}
 
-	getLoggerInstance().LogAttrs(
+	//for _, val := range configuration.GetLoggerConfig().Target {
+	//	if strings.ToUpper(val) == TargetCmd {
+	getLoggerStdoutInstance().LogAttrs(
 		context.Background(),
 		logLevel,
 		msg+msgFormat.String(),
 		attrs...)
+	//	}
+	//}
+	//for _, val := range configuration.GetLoggerConfig().Target {
+	//	if strings.ToUpper(val) == TargetFile {
+	//		getLoggerFileInstance().LogAttrs(
+	//			context.Background(),
+	//			logLevel,
+	//			msg+msgFormat.String(),
+	//			attrs...)
+	//	}
+	//}
 }
 
 func logInfo(msg string, args ...any) {

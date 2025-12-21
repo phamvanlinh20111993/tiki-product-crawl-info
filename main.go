@@ -10,12 +10,13 @@ import (
 func main() {
 	util.RemoveDir(configuration.GetFileConfig().Path)
 	util.CreateDir(configuration.GetFileConfig().Path)
-	//
+
 	handle.TikiCrawlHandler{}.CrawlHandle()
 
 	//http_server.HttpServer()
 
 	// handle.Example()
+
 }
 
 // TODO handle later

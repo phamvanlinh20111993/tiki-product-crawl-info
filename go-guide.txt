@@ -68,3 +68,6 @@ WARNING: undefined behavior - version of Delve is too old for Go version go1.25.
     - go get -u && go mod tidy
     - go clean -modcache
     - ...
+
+# Go mutex:
+    https://gobyexample.com/mutexes

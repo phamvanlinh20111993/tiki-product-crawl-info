@@ -3,7 +3,6 @@ package handle
 import (
 	"encoding/json"
 	"math"
-	"math/rand"
 	"selfstudy/crawl/product/configuration"
 	"selfstudy/crawl/product/datasource"
 	"selfstudy/crawl/product/datasource/file"
@@ -11,7 +10,6 @@ import (
 	"selfstudy/crawl/product/logger"
 	"selfstudy/crawl/product/metadata"
 	"selfstudy/crawl/product/parser/tiki"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -21,6 +19,22 @@ import (
 type TikiCrawlHandler struct {
 	input  any // TODO
 	output []datasource.DatasourceI
+}
+
+func notify(doneChan chan bool, categoryL int, currentCountData *int32) {
+	doneCount := 0
+	for {
+		select {
+		case <-doneChan:
+			doneCount++
+		default:
+			if doneCount == categoryL {
+				break
+			}
+			logger.LogInfo("^^^^^^^^^^^^^^^^^^^^^^^^^ ^^^^^^ Current amount of products data crawling: ", currentCountData, " ^^^^^^^^^^^^^^^^^^^^^^^^^^ ^^^^^")
+			time.Sleep(20 * time.Second)
+		}
+	}
 }
 
 func (crawl TikiCrawlHandler) CrawlHandle() {
@@ -33,11 +47,8 @@ func (crawl TikiCrawlHandler) CrawlHandle() {
 	var categories = categoryParser.Parse(document)
 
 	var totalData int = 0
-	var wg sync.WaitGroup
 	var currentCountData int32 = 0
 	doneChan := make(chan bool, len(categories))
-
-	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	// get category file
 	categoryFile := file.NewFileDataSource(configuration.GetFileConfig().PrefixName + "categories")
 	byteData, err := json.Marshal(categories)
@@ -64,6 +75,7 @@ func (crawl TikiCrawlHandler) CrawlHandle() {
 		categoryFilePath.Insert(string(byteData))
 	}
 
+	crawlRoutinePool := NewWorkerRoutine(4)
 	// TODO handle category manually => bad
 	for i := 0; i < len(categories); i++ {
 		category := categories[i]
@@ -75,41 +87,24 @@ func (crawl TikiCrawlHandler) CrawlHandle() {
 		}
 		logger.LogDebug(category.Title, ": total product", productResp.Paging.Total)
 		totalData += productResp.Paging.Total
-		//	wg.Go(func() {
-		crawl.getProductDataByCategory(category, productResp.Paging.LastPage, &currentCountData, &wg, doneChan, random)
-		//	})
+		// concurrency
+		crawlRoutinePool.Execute(func() {
+			crawl.getProductDataByCategory(category, productResp.Paging.LastPage, doneChan, &currentCountData)
+		})
+
 	}
 	logger.LogInfo("Total product data expected to crawl: ", totalData)
-
-	/*	wg.Add(1)
-		go func() {
-			defer wg.Done()
-			doneCount := 0
-			for {
-				select {
-				case <-doneChan:
-					doneCount++
-				default:
-					if doneCount == len(categories) {
-						break
-					}
-					util.LogInfo("^^^^^^^^^^^^^^^^^^^^^^^^^ ^^^^^^ Current amount of products data crawling: ", currentCountData, " ^^^^^^^^^^^^^^^^^^^^^^^^^^ ^^^^^")
-					time.Sleep(20 * time.Second)
-				}
-			}
-		}()
-
-		wg.Wait() */
-	//	close(doneChan)
 }
 
-func (crawl TikiCrawlHandler) getProductDataByCategory(category metadata.CategoryRoot, lastPage int, currentCountProduct *int32, wg *sync.WaitGroup, doneChan chan bool, random *rand.Rand) {
+/*
+*
+ */
+func (crawl TikiCrawlHandler) getProductDataByCategory(category metadata.CategoryRoot, lastPage int, doneChan chan bool, currentCountProduct *int32) {
 	productFile := file.NewFileDataSource(configuration.GetFileConfig().PrefixName + category.Title + "-" + category.Code)
 	productFileDetail := file.NewFileDataSource(configuration.GetFileConfig().PrefixName + category.Title + "-" + category.Code + "-Detail")
 
 	defer productFile.Close()
 	defer productFileDetail.Close()
-	//defer wg.Done()
 
 	for pageNum := 1; pageNum <= lastPage; pageNum++ {
 		logger.LogInfo("@@@@@@@@@@@@@@@@@@@@@@@@@", category.Title, ": page Number ", pageNum, "@@@@@@@@@@@@@@@@@@@@@@@@@")
@@ -172,7 +167,7 @@ func (crawl TikiCrawlHandler) getProductDataByCategory(category metadata.Categor
 		}
 
 	}
-	//	doneChan <- true
+	doneChan <- true
 }
 
 func getProductDetailJson(page string) (string, error) {
