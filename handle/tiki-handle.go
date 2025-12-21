@@ -74,7 +74,7 @@ func (crawl TikiCrawlHandler) CrawlHandle() {
 		}
 		categoryFilePath.Insert(string(byteData))
 	}
-
+	// TODO can not > 4 because http request error Tiki: stopped after 10 redirects
 	crawlRoutinePool := NewWorkerRoutine(4)
 	// TODO handle category manually => bad
 	for i := 0; i < len(categories); i++ {
