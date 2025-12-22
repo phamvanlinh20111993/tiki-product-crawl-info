@@ -11,42 +11,46 @@ type jobFn func()
 
 // TODO this file is using for manage go routine, not spawn undesirable  go routine like current behavior
 // we can check https://gobyexample.com/worker-pools
-type WorkerRoutine struct {
+type WorkerPool struct {
 	concurrentGoroutine int32
 	jobQueue            []jobFn
 	mu                  sync.Mutex
 	limitAmountResource chan int
 }
 
-func NewWorkerRoutine(concurrentGoroutine int32) WorkerRoutine {
+func NewWorkerPool(concurrentGoroutine int32) WorkerPool {
 	if concurrentGoroutine < 1 {
-		panic(errors.New("the concurrentGoroutine can be less than 1"))
+		panic(errors.New("workers must be >= 1"))
 	}
 	limitAmountResource := make(chan int, concurrentGoroutine)
 	var jobQueue []jobFn
-	return WorkerRoutine{concurrentGoroutine: concurrentGoroutine,
+	return WorkerPool{concurrentGoroutine: concurrentGoroutine,
 		jobQueue: jobQueue, limitAmountResource: limitAmountResource}
 }
 
 // Execute TODO thanks chatgpt: https://chatgpt.com/, but idea is mine :)))
 // TODO change the code later, use LinkedList to implement the queue, we do not need to copy
-func (w *WorkerRoutine) Execute(job jobFn) {
-	w.mu.Lock()
+func (wp *WorkerPool) Execute(job jobFn) {
+	wp.mu.Lock()
 
-	w.jobQueue = append(w.jobQueue, job)
-	jobExecutions := make([]jobFn, len(w.jobQueue))
-	copy(jobExecutions, w.jobQueue)
-	w.jobQueue = w.jobQueue[:0]
+	wp.jobQueue = append(wp.jobQueue, job)
+	jobExecutions := make([]jobFn, len(wp.jobQueue))
+	copy(jobExecutions, wp.jobQueue)
+	wp.jobQueue = wp.jobQueue[:0]
 
-	w.mu.Unlock()
+	wp.mu.Unlock()
 
 	for _, jobDetail := range jobExecutions {
-		w.limitAmountResource <- 1
+		wp.limitAmountResource <- 1
 		go func(doJob jobFn) {
-			defer func() { <-w.limitAmountResource }()
+			defer func() { <-wp.limitAmountResource }()
 			doJob()
 		}(jobDetail)
 	}
+}
+
+func (wp *WorkerPool) Shutdown() {
+	close(wp.limitAmountResource)
 }
 
 // TODO mark as remove later

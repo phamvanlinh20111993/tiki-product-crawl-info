@@ -45,6 +45,8 @@ var Levels = map[string]slog.Level{
 	"WARN":  slog.LevelWarn,
 }
 
+var DefaultLogFileExtension = ".log"
+
 func slogOption() *slog.HandlerOptions {
 	var loggerConfig = configuration.GetLoggerConfig()
 	return &slog.HandlerOptions{
@@ -86,12 +88,37 @@ func getLoggerStdoutInstance() *slog.Logger {
 }
 
 func getLoggerFileInstance() *slog.Logger {
-	logFile, err := os.OpenFile("application.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	var loggerPath = util.GetPathSeparator() + "log" + util.GetPathSeparator()
+	var logFileConfig = configuration.GetLoggerConfig()
+
+	var filePattern string = logFileConfig.FilePattern
+	if logFileConfig.FilePattern == "" {
+		filePattern = util.Format_yyyy_mm_dd
+	}
+
+	var logFilePath string = logFileConfig.FilePath
+	if logFilePath == "" || logFilePath == strings.TrimSpace(".") {
+		logFilePath = util.GetCurrentFolder()
+	}
+	// C:\Users\Lenovo\AppData\Local\JetBrains\IntelliJIdea2025.3\tmp\GoLand\log
+	var path string = logFilePath + loggerPath
+	var logFileName string = logFileConfig.FilePrefixName + util.CurrentTimeToString(filePattern) + DefaultLogFileExtension
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		err := os.MkdirAll(path, 0644)
+		// TODO: handle error
+		panic(err)
+	}
+	logFile, err := os.OpenFile(path+logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		panic(err)
 	}
 
-	defer logFile.Close()
+	defer func(logFile *os.File) {
+		err := logFile.Close()
+		if err != nil {
+			panic(err)
+		}
+	}(logFile)
 
 	//handler := NewPrettyHandler(os.Stdout, opts)
 	handler := slog.NewTextHandler(logFile, slogOption())

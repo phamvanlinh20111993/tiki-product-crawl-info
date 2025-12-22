@@ -38,8 +38,8 @@ func NewFileDataSource(fileName string) *FileDataSource {
 }
 
 func (fd *FileDataSource) Insert(data string) {
-	// fd.connection.WriteString(data + util.GetLineSeperator()) ()
-	if _, err := fd.connection.Write([]byte(data + util.GetLineSeperator())); err != nil {
+	// fd.connection.WriteString(data + util.GetLineSeparator()) ()
+	if _, err := fd.connection.Write([]byte(data + util.GetLineSeparator())); err != nil {
 		logger.LogError("Error while writing to file: ", fd.fullFilePath)
 	}
 }

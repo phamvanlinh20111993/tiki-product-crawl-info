@@ -21,7 +21,12 @@ type TikiCrawlHandler struct {
 	output []datasource.DatasourceI
 }
 
-func notify(doneChan chan bool, categoryL int, currentCountData *int32) {
+var (
+	productDataQueue    chan metadata.Product
+	currentCountProduct int32
+)
+
+func notify(doneChan chan bool, categoryL int) {
 	doneCount := 0
 	for {
 		select {
@@ -31,13 +36,17 @@ func notify(doneChan chan bool, categoryL int, currentCountData *int32) {
 			if doneCount == categoryL {
 				break
 			}
-			logger.LogInfo("^^^^^^^^^^^^^^^^^^^^^^^^^ ^^^^^^ Current amount of products data crawling: ", currentCountData, " ^^^^^^^^^^^^^^^^^^^^^^^^^^ ^^^^^")
+			logger.LogInfo("^^^^^^^^^^^^^^^^^^^^^^^^^ ^^^^^^ Current amount of products data crawling: ", currentCountProduct, " ^^^^^^^^^^^^^^^^^^^^^^^^^^ ^^^^^")
 			time.Sleep(20 * time.Second)
 		}
 	}
 }
 
 func (crawl TikiCrawlHandler) CrawlHandle() {
+
+	productDataQueue = make(chan metadata.Product, 1000)
+	currentCountProduct = 0
+
 	document, _ := httprequest.GetTikiHtmlPage("")
 	if document == nil {
 		panic("Error when get Tiki html page")
@@ -47,7 +56,6 @@ func (crawl TikiCrawlHandler) CrawlHandle() {
 	var categories = categoryParser.Parse(document)
 
 	var totalData int = 0
-	var currentCountData int32 = 0
 	doneChan := make(chan bool, len(categories))
 	// get category file
 	categoryFile := file.NewFileDataSource(configuration.GetFileConfig().PrefixName + "categories")
@@ -74,8 +82,9 @@ func (crawl TikiCrawlHandler) CrawlHandle() {
 		}
 		categoryFilePath.Insert(string(byteData))
 	}
+
 	// TODO can not > 4 because http request error Tiki: stopped after 10 redirects
-	crawlRoutinePool := NewWorkerRoutine(4)
+	crawlRoutinePool := NewWorkerPool(2)
 	// TODO handle category manually => bad
 	for i := 0; i < len(categories); i++ {
 		category := categories[i]
@@ -89,9 +98,8 @@ func (crawl TikiCrawlHandler) CrawlHandle() {
 		totalData += productResp.Paging.Total
 		// concurrency
 		crawlRoutinePool.Execute(func() {
-			crawl.getProductDataByCategory(category, productResp.Paging.LastPage, doneChan, &currentCountData)
+			crawl.getProductDataByCategory(category, productResp.Paging.LastPage, doneChan)
 		})
-
 	}
 	logger.LogInfo("Total product data expected to crawl: ", totalData)
 }
@@ -99,12 +107,13 @@ func (crawl TikiCrawlHandler) CrawlHandle() {
 /*
 *
  */
-func (crawl TikiCrawlHandler) getProductDataByCategory(category metadata.CategoryRoot, lastPage int, doneChan chan bool, currentCountProduct *int32) {
+func (crawl TikiCrawlHandler) getProductDataByCategory(category metadata.CategoryRoot, lastPage int, doneChan chan bool) {
 	productFile := file.NewFileDataSource(configuration.GetFileConfig().PrefixName + category.Title + "-" + category.Code)
 	productFileDetail := file.NewFileDataSource(configuration.GetFileConfig().PrefixName + category.Title + "-" + category.Code + "-Detail")
-
 	defer productFile.Close()
 	defer productFileDetail.Close()
+
+	go getProductDetailOnRestrictPage(productFile, productFileDetail)
 
 	for pageNum := 1; pageNum <= lastPage; pageNum++ {
 		logger.LogInfo("@@@@@@@@@@@@@@@@@@@@@@@@@", category.Title, ": page Number ", pageNum, "@@@@@@@@@@@@@@@@@@@@@@@@@")
@@ -119,55 +128,82 @@ func (crawl TikiCrawlHandler) getProductDataByCategory(category metadata.Categor
 			logger.LogInfo("Product Data is empty", category.Title, ", At page", pageNum)
 			continue
 		}
-
-		var i int = 0
-		var errorCount int = 2
-		var exponential float64 = 2.0 //2.7 + random.Float64()*(6.5-2.7)
-		for i = 0; i < len(productResp.Data); {
-			product := productResp.Data[i]
-			byteData, err := json.Marshal(product)
-			if err != nil {
-				logger.LogError("Error while call product API", err)
-				continue
-			}
-			if product.UrlPath != "" && len(product.UrlPath) > 0 {
-				jsonProductDetailData, err := getProductDetailJson(product.UrlPath)
-				if err != nil {
-					jsonProductData := string(byteData)
-					productFile.Insert(jsonProductData)
-					i++
-					errorCount = 1
-					continue
-				}
-
-				if jsonProductDetailData != "" {
-					atomic.AddInt32((*int32)(currentCountProduct), 1)
-					jsonProductData := string(byteData)
-					productFile.Insert(jsonProductData)
-					productFileDetail.Insert(jsonProductDetailData)
-					i++
-					errorCount = 1
-					continue
-				}
-				// more than 129s 2^7, 7 time
-				if errorCount > 129 {
-					logger.LogInfo("We can't do request forever, errorCount = ", errorCount)
-					jsonProductData := string(byteData)
-					productFile.Insert(jsonProductData)
-					i++
-					errorCount = 1
-					continue
-				}
-				logger.LogInfo("Start retry with duration ", time.Duration(errorCount)*time.Second)
-				time.Sleep(time.Duration(errorCount) * time.Second)
-				errorCount = int(math.Round(exponential * float64(errorCount)))
-
-			}
-			// time.Sleep(250 * time.Microsecond)
+		// TODO here pass chan to another function
+		for _, product := range productResp.Data {
+			productDataQueue <- product
 		}
-
 	}
 	doneChan <- true
+}
+
+func getProductDetailOnRestrictPage(productFile *file.FileDataSource, productFileDetail *file.FileDataSource) {
+	emptyCount := 0
+	var isLoop bool = true
+	for isLoop {
+		select {
+		case product, ok := <-productDataQueue:
+			logger.LogInfo("Read product data from queue ", product.Name)
+			if ok {
+				emptyCount = 0
+
+				byteData, err := json.Marshal(product)
+				var i int = 0
+				var errorCount int = 2
+				var exponential float64 = 2.0 //2.7 + random.Float64()*(6.5-2.7)
+
+				if err != nil {
+					logger.LogError("Error while call product API", err)
+					continue
+				}
+
+				if product.UrlPath == "" || len(product.UrlPath) <= 0 {
+					continue
+				}
+
+				for {
+					jsonProductDetailData, err := getProductDetailJson(product.UrlPath)
+					if err != nil {
+						jsonProductData := string(byteData)
+						productFile.Insert(jsonProductData)
+						i++
+						errorCount = 1
+						break
+					}
+
+					if jsonProductDetailData != "" {
+						atomic.AddInt32(&currentCountProduct, 1)
+						jsonProductData := string(byteData)
+						productFile.Insert(jsonProductData)
+						productFileDetail.Insert(jsonProductDetailData)
+						i++
+						errorCount = 1
+						break
+					}
+					// more than 129s 2^7, 7 time
+					if errorCount > 129 {
+						logger.LogInfo("We can't do request forever, errorCount = ", errorCount)
+						jsonProductData := string(byteData)
+						productFile.Insert(jsonProductData)
+						i++
+						errorCount = 1
+						break
+					}
+
+					logger.LogInfo("Start retry with duration ", time.Duration(errorCount)*time.Second)
+					time.Sleep(time.Duration(errorCount) * time.Second)
+					errorCount = int(math.Round(exponential * float64(errorCount)))
+				}
+			}
+		default:
+			if emptyCount > 5 {
+				isLoop = false
+				logger.LogDebug("Channel is empty (or no value is ready to be read).")
+			}
+			time.Sleep(2 * time.Second)
+			emptyCount++
+		}
+	}
+
 }
 
 func getProductDetailJson(page string) (string, error) {
