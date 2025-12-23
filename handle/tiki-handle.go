@@ -21,8 +21,15 @@ type TikiCrawlHandler struct {
 	output []datasource.DatasourceI
 }
 
+type TransferProductDetail struct {
+	productFile       *file.FileDataSource
+	productFileDetail *file.FileDataSource
+	product           *metadata.Product
+	isEnd             bool
+}
+
 var (
-	productDataQueue    chan metadata.Product
+	productDataQueue    chan TransferProductDetail
 	currentCountProduct int32
 )
 
@@ -43,8 +50,7 @@ func notify(doneChan chan bool, categoryL int) {
 }
 
 func (crawl TikiCrawlHandler) CrawlHandle() {
-
-	productDataQueue = make(chan metadata.Product, 1000)
+	productDataQueue = make(chan TransferProductDetail, 1000)
 	currentCountProduct = 0
 
 	document, _ := httprequest.GetTikiHtmlPage("")
@@ -54,7 +60,6 @@ func (crawl TikiCrawlHandler) CrawlHandle() {
 
 	categoryParser := tiki.CategoryParser{}
 	var categories = categoryParser.Parse(document)
-
 	var totalData int = 0
 	doneChan := make(chan bool, len(categories))
 	// get category file
@@ -85,6 +90,9 @@ func (crawl TikiCrawlHandler) CrawlHandle() {
 
 	// TODO can not > 4 because http request error Tiki: stopped after 10 redirects
 	crawlRoutinePool := NewWorkerPool(2)
+
+	go getProductDetailOnRestrictPage()
+
 	// TODO handle category manually => bad
 	for i := 0; i < len(categories); i++ {
 		category := categories[i]
@@ -101,6 +109,7 @@ func (crawl TikiCrawlHandler) CrawlHandle() {
 			crawl.getProductDataByCategory(category, productResp.Paging.LastPage, doneChan)
 		})
 	}
+
 	logger.LogInfo("Total product data expected to crawl: ", totalData)
 }
 
@@ -110,53 +119,77 @@ func (crawl TikiCrawlHandler) CrawlHandle() {
 func (crawl TikiCrawlHandler) getProductDataByCategory(category metadata.CategoryRoot, lastPage int, doneChan chan bool) {
 	productFile := file.NewFileDataSource(configuration.GetFileConfig().PrefixName + category.Title + "-" + category.Code)
 	productFileDetail := file.NewFileDataSource(configuration.GetFileConfig().PrefixName + category.Title + "-" + category.Code + "-Detail")
-	defer productFile.Close()
-	defer productFileDetail.Close()
-
-	go getProductDetailOnRestrictPage(productFile, productFileDetail)
 
 	for pageNum := 1; pageNum <= lastPage; pageNum++ {
 		logger.LogInfo("@@@@@@@@@@@@@@@@@@@@@@@@@", category.Title, ": page Number ", pageNum, "@@@@@@@@@@@@@@@@@@@@@@@@@")
 		productResp, err := httprequest.GetTikiProductList(pageNum,
 			configuration.GetTikiPageConfig().ProductAPIQueryParam.Limit, category.Code)
+
 		if err != nil {
 			logger.LogError("Error while call product API", err)
+			if pageNum == lastPage {
+				productFile.Close()
+				productFileDetail.Close()
+			}
 			continue
 		}
 
 		if len(productResp.Data) == 0 {
 			logger.LogInfo("Product Data is empty", category.Title, ", At page", pageNum)
+			if pageNum == lastPage {
+				productFile.Close()
+				productFileDetail.Close()
+			}
 			continue
 		}
 		// TODO here pass chan to another function
-		for _, product := range productResp.Data {
-			productDataQueue <- product
+		productResLen := len(productResp.Data)
+		for ind, product := range productResp.Data {
+			var isEnd bool = false
+			if pageNum == lastPage && ind == productResLen-1 {
+				isEnd = true
+			}
+			productDataQueue <- TransferProductDetail{
+				productFile,
+				productFileDetail,
+				&product,
+				isEnd,
+			}
 		}
 	}
 	doneChan <- true
 }
 
-func getProductDetailOnRestrictPage(productFile *file.FileDataSource, productFileDetail *file.FileDataSource) {
+func getProductDetailOnRestrictPage() {
 	emptyCount := 0
 	var isLoop bool = true
+
 	for isLoop {
 		select {
-		case product, ok := <-productDataQueue:
-			logger.LogInfo("Read product data from queue ", product.Name)
+		case productDetail, ok := <-productDataQueue:
+			logger.LogInfo("Read product data from queue ", productDetail.product.Name)
 			if ok {
 				emptyCount = 0
-
-				byteData, err := json.Marshal(product)
+				byteData, err := json.Marshal(productDetail.product)
 				var i int = 0
 				var errorCount int = 2
 				var exponential float64 = 2.0 //2.7 + random.Float64()*(6.5-2.7)
+				var product *metadata.Product = productDetail.product
 
 				if err != nil {
 					logger.LogError("Error while call product API", err)
+					if productDetail.isEnd {
+						productDetail.productFile.Close()
+						productDetail.productFileDetail.Close()
+					}
 					continue
 				}
 
 				if product.UrlPath == "" || len(product.UrlPath) <= 0 {
+					if productDetail.isEnd {
+						productDetail.productFile.Close()
+						productDetail.productFileDetail.Close()
+					}
 					continue
 				}
 
@@ -164,7 +197,7 @@ func getProductDetailOnRestrictPage(productFile *file.FileDataSource, productFil
 					jsonProductDetailData, err := getProductDetailJson(product.UrlPath)
 					if err != nil {
 						jsonProductData := string(byteData)
-						productFile.Insert(jsonProductData)
+						productDetail.productFile.Insert(jsonProductData)
 						i++
 						errorCount = 1
 						break
@@ -173,8 +206,8 @@ func getProductDetailOnRestrictPage(productFile *file.FileDataSource, productFil
 					if jsonProductDetailData != "" {
 						atomic.AddInt32(&currentCountProduct, 1)
 						jsonProductData := string(byteData)
-						productFile.Insert(jsonProductData)
-						productFileDetail.Insert(jsonProductDetailData)
+						productDetail.productFile.Insert(jsonProductData)
+						productDetail.productFileDetail.Insert(jsonProductDetailData)
 						i++
 						errorCount = 1
 						break
@@ -183,7 +216,7 @@ func getProductDetailOnRestrictPage(productFile *file.FileDataSource, productFil
 					if errorCount > 129 {
 						logger.LogInfo("We can't do request forever, errorCount = ", errorCount)
 						jsonProductData := string(byteData)
-						productFile.Insert(jsonProductData)
+						productDetail.productFile.Insert(jsonProductData)
 						i++
 						errorCount = 1
 						break
@@ -193,13 +226,18 @@ func getProductDetailOnRestrictPage(productFile *file.FileDataSource, productFil
 					time.Sleep(time.Duration(errorCount) * time.Second)
 					errorCount = int(math.Round(exponential * float64(errorCount)))
 				}
+
+				if productDetail.isEnd {
+					productDetail.productFile.Close()
+					productDetail.productFileDetail.Close()
+				}
 			}
 		default:
 			if emptyCount > 5 {
 				isLoop = false
 				logger.LogDebug("Channel is empty (or no value is ready to be read).")
 			}
-			time.Sleep(2 * time.Second)
+			time.Sleep(3 * time.Second)
 			emptyCount++
 		}
 	}

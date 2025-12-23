@@ -15,16 +15,11 @@ type PrettyHandlerOptions struct {
 	SlogOpts slog.HandlerOptions
 }
 
-var (
-	logger *slog.Logger
-	once   sync.Once
-)
-
 const (
 	LevelTrace = slog.Level(-8)
 	LevelFatal = slog.Level(12)
 	TargetFile = "FILE"
-	TargetCmd  = "CMD"
+	TargetCmd  = "STDOUT"
 )
 
 var LevelNames = map[slog.Leveler]string{
@@ -44,8 +39,6 @@ var Levels = map[string]slog.Level{
 	"ERROR": slog.LevelError,
 	"WARN":  slog.LevelWarn,
 }
-
-var DefaultLogFileExtension = ".log"
 
 func slogOption() *slog.HandlerOptions {
 	var loggerConfig = configuration.GetLoggerConfig()
@@ -75,6 +68,11 @@ func slogOption() *slog.HandlerOptions {
 	}
 }
 
+var (
+	logger *slog.Logger
+	once   sync.Once
+)
+
 func getLoggerStdoutInstance() *slog.Logger {
 	once.Do(func() {
 		//opts := PrettyHandlerOptions{
@@ -87,10 +85,18 @@ func getLoggerStdoutInstance() *slog.Logger {
 	return logger
 }
 
-func getLoggerFileInstance() *slog.Logger {
-	var loggerPath = util.GetPathSeparator() + "log" + util.GetPathSeparator()
-	var logFileConfig = configuration.GetLoggerConfig()
+var (
+	loggerPathFolder               = util.GetPathSeparator() + "log" + util.GetPathSeparator()
+	logFileName             string = ""
+	DefaultLogFileExtension        = ".log"
+	logFile                 *os.File
+	loggerFile              *slog.Logger
+	lock                    sync.Mutex
+)
 
+// TODO need to improve, too many logic => slow logging
+func getLoggerFileInstance() *slog.Logger {
+	var logFileConfig = configuration.GetLoggerConfig()
 	var filePattern string = logFileConfig.FilePattern
 	if logFileConfig.FilePattern == "" {
 		filePattern = util.Format_yyyy_mm_dd
@@ -101,29 +107,42 @@ func getLoggerFileInstance() *slog.Logger {
 		logFilePath = util.GetCurrentFolder()
 	}
 	// C:\Users\Lenovo\AppData\Local\JetBrains\IntelliJIdea2025.3\tmp\GoLand\log
-	var path string = logFilePath + loggerPath
-	var logFileName string = logFileConfig.FilePrefixName + util.CurrentTimeToString(filePattern) + DefaultLogFileExtension
+	var path string = logFilePath + loggerPathFolder
+	var currLogFileName string = logFileConfig.FilePrefixName + util.CurrentTimeToString(filePattern) + DefaultLogFileExtension
+
+	if currLogFileName == logFileName {
+		logFileName = currLogFileName
+		return loggerFile
+	}
+
+	lock.Lock()
+	if currLogFileName != logFileName {
+		logFileName = currLogFileName
+		if logFile != nil {
+			if err := logFile.Close(); err != nil {
+				panic(err)
+			}
+		}
+	}
+
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		err := os.MkdirAll(path, 0644)
 		// TODO: handle error
 		panic(err)
 	}
-	logFile, err := os.OpenFile(path+logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	var err error
+	logFile, err = os.OpenFile(path+logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		panic(err)
 	}
 
-	defer func(logFile *os.File) {
-		err := logFile.Close()
-		if err != nil {
-			panic(err)
-		}
-	}(logFile)
-
 	//handler := NewPrettyHandler(os.Stdout, opts)
 	handler := slog.NewTextHandler(logFile, slogOption())
-	logger = slog.New(handler)
-	return logger
+	loggerFile = slog.New(handler)
+	
+	lock.Unlock()
+
+	return loggerFile
 }
 
 func logCommon(logLevel slog.Level, msg string, args ...any) {
@@ -155,24 +174,24 @@ func logCommon(logLevel slog.Level, msg string, args ...any) {
 		msgFormat.WriteString(fmt.Sprintf("%v", v))
 	}
 
-	//for _, val := range configuration.GetLoggerConfig().Target {
-	//	if strings.ToUpper(val) == TargetCmd {
-	getLoggerStdoutInstance().LogAttrs(
-		context.Background(),
-		logLevel,
-		msg+msgFormat.String(),
-		attrs...)
-	//	}
-	//}
-	//for _, val := range configuration.GetLoggerConfig().Target {
-	//	if strings.ToUpper(val) == TargetFile {
-	//		getLoggerFileInstance().LogAttrs(
-	//			context.Background(),
-	//			logLevel,
-	//			msg+msgFormat.String(),
-	//			attrs...)
-	//	}
-	//}
+	for _, val := range configuration.GetLoggerConfig().Target {
+		if strings.ToUpper(val) == TargetCmd {
+			getLoggerStdoutInstance().LogAttrs(
+				context.Background(),
+				logLevel,
+				msg+msgFormat.String(),
+				attrs...)
+		}
+	}
+	for _, val := range configuration.GetLoggerConfig().Target {
+		if strings.ToUpper(val) == TargetFile {
+			getLoggerFileInstance().LogAttrs(
+				context.Background(),
+				logLevel,
+				msg+msgFormat.String(),
+				attrs...)
+		}
+	}
 }
 
 func logInfo(msg string, args ...any) {

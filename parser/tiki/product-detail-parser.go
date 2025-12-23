@@ -173,7 +173,7 @@ func foundKeyInMap(inp map[string]any, keyMaps string) map[string]any {
 			temp = result
 		} else {
 			temp = nil
-			logger.LogDebug("Can not found data for key ", keyMap)
+			logger.LogDebug("Can not found data for key '", keyMap, "' in map")
 			break
 		}
 	}
