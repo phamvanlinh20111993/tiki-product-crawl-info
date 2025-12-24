@@ -33,7 +33,7 @@ crawl:
 
     file-local:
       path: F:\GitHub Repositories\Golang Projects\crawl-data-output
-      prefix-name: crawl-
+      prefix-name: crawl-data-
       extension: "txt"
 
   logger:
@@ -43,7 +43,7 @@ crawl:
     target: ["FILE", "STDOUT", "REMOTE"] # TODO
    # nums: [ 1.3,2.0,3.1,4.5,5.3434 ]
    # booleans: [ false, true, true, false ]
-    file-prefix: crawl-
+    file-prefix: crawl-log-
     file-path:
     file-pattern:
     keep-log-days: 30

@@ -3,12 +3,17 @@ package logger
 import (
 	"context"
 	"fmt"
+	"log"
 	"log/slog"
 	"os"
+	"runtime"
 	"selfstudy/crawl/product/configuration"
 	"selfstudy/crawl/product/util"
+	"sort"
 	"strings"
 	"sync"
+	"syscall"
+	"time"
 )
 
 type PrettyHandlerOptions struct {
@@ -94,6 +99,60 @@ var (
 	lock                    sync.Mutex
 )
 
+func removeOldLogs(path string) {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		log.Println(err)
+	}
+
+	type LogFile struct {
+		logFileName string
+		cTime       time.Time
+	}
+
+	var logFiles []LogFile
+
+	var logFileConfig = configuration.GetLoggerConfig()
+	for _, e := range entries {
+		if !e.IsDir() {
+			fileInfo, err := e.Info()
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			if !strings.HasPrefix(fileInfo.Name(), logFileConfig.FilePrefixName) {
+				continue
+			}
+
+			var cTime time.Time = fileInfo.ModTime()
+			if runtime.GOOS == "windows" {
+				d := fileInfo.Sys().(*syscall.Win32FileAttributeData)
+				cTime = time.Unix(0, d.CreationTime.Nanoseconds())
+			}
+
+			logFiles = append(logFiles, LogFile{path + fileInfo.Name(), cTime})
+		}
+	}
+
+	if logFileConfig.KeepLogDays > len(logFiles) {
+		return
+	}
+
+	sort.Slice(logFiles, func(i, j int) bool {
+		return logFiles[j].cTime.After(logFiles[i].cTime)
+	})
+
+	for i := 0; i < len(logFiles)-logFileConfig.KeepLogDays; i++ {
+		// Using Remove() function
+		e := os.Remove(logFiles[i].logFileName)
+		if e != nil {
+			log.Println(e)
+		}
+	}
+
+}
+
 // TODO need to improve, too many logic => slow logging
 func getLoggerFileInstance() *slog.Logger {
 	var logFileConfig = configuration.GetLoggerConfig()
@@ -116,30 +175,29 @@ func getLoggerFileInstance() *slog.Logger {
 	}
 
 	lock.Lock()
-	if currLogFileName != logFileName {
-		logFileName = currLogFileName
-		if logFile != nil {
-			if err := logFile.Close(); err != nil {
-				panic(err)
-			}
+	removeOldLogs(logFilePath)
+
+	logFileName = currLogFileName
+	if logFile != nil {
+		if err := logFile.Close(); err != nil {
+			log.Println(err)
 		}
 	}
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		err := os.MkdirAll(path, 0644)
-		// TODO: handle error
-		panic(err)
+		log.Println(err)
 	}
 	var err error
 	logFile, err = os.OpenFile(path+logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 	//handler := NewPrettyHandler(os.Stdout, opts)
 	handler := slog.NewTextHandler(logFile, slogOption())
 	loggerFile = slog.New(handler)
-	
+
 	lock.Unlock()
 
 	return loggerFile
