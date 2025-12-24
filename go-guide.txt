@@ -67,4 +67,12 @@ WARNING: undefined behavior - version of Delve is too old for Go version go1.25.
     - go test
     - go get -u && go mod tidy
     - go clean -modcache
+    - go test -race ./... (Race Detector)
     - ...
+
+# Go mutex:
+    https://gobyexample.com/mutexes
+
+# Go best practices
+    https://blog.stackademic.com/23-go-best-practices-every-developer-should-know-with-examples-405772530d8f
+    https://blog.stackademic.com/advanced-go-best-practices-every-developer-should-follow-bb9aee96c819

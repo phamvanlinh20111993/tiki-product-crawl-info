@@ -36,7 +36,7 @@ func removeDir(path string) bool {
 	return true
 }
 
-func getLineSeperator() string {
+func getLineSeparator() string {
 	newline := "\n"
 	if os.PathSeparator == '\\' { // window os
 		newline = "\r\n"
@@ -44,7 +44,12 @@ func getLineSeperator() string {
 	return newline
 }
 
+func getPathSeparator() string {
+	return string(os.PathSeparator)
+}
+
 var IsExist = isExist
 var CreateDir = createDir
-var GetLineSeperator = getLineSeperator
+var GetLineSeparator = getLineSeparator
 var RemoveDir = removeDir
+var GetPathSeparator = getPathSeparator

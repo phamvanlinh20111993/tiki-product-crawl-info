@@ -3,6 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"path/filepath"
 	"selfstudy/crawl/product/configuration"
 	"selfstudy/crawl/product/datasource/file"
 	"selfstudy/crawl/product/handle"
@@ -12,6 +15,7 @@ import (
 	"selfstudy/crawl/product/parser/tiki"
 	"strconv"
 	"testing"
+	"time"
 )
 
 func Test_Common(t *testing.T) {
@@ -135,4 +139,30 @@ func Test_category_path_example(t *testing.T) {
 	}
 
 	defer categoryFilePath.Close()
+}
+
+func Test_Concurrency(t *testing.T) {
+	routine := handle.NewWorkerPool(4)
+	for ind := 0; ind < 10; ind++ {
+		routine.Execute(func() {
+			logger.LogInfo("Job at index ", ind, " start")
+			for i := 0; i < 10; i++ {
+				logger.LogInfo("Job at index ", ind, " do the job")
+				time.Sleep(1 * time.Second)
+			}
+			logger.LogInfo("Job at index ", ind, " end")
+		})
+	}
+}
+
+func Test_currentPath(t *testing.T) {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(dir)
+}
+
+func Test_create_log_path_file(t *testing.T) {
+
 }

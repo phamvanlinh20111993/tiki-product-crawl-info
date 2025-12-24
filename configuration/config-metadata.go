@@ -48,9 +48,10 @@ type LoggerConfig struct {
 	IsTraceRequest bool     `conf:"crawl.logger.trace-request"`
 	Target         []string `conf:"crawl.logger.target"`
 	//	Nums           []float64 `conf:"crawl.logger.nums"` // not use, just for testing
-	FilePath    string `conf:"crawl.logger.file-path"`
-	FilePattern string `conf:"crawl.logger.file-pattern"`
-	KeepLogDays int    `conf:"crawl.logger.keep-log-days"`
+	FilePath       string `conf:"crawl.logger.file-path"`
+	FilePattern    string `conf:"crawl.logger.file-pattern"`
+	KeepLogDays    int    `conf:"crawl.logger.keep-log-days"`
+	FilePrefixName string `conf:"crawl.logger.file-prefix"`
 	//	Booleans       []bool    `conf:"crawl.logger.booleans"` // not use, just for testing
 }
 
